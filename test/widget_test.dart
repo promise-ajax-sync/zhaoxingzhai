@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/app/app_sidebar.dart';
+import 'package:zhaoxingzhai/core/data/ssgw_data.dart';
 import 'package:zhaoxingzhai/core/data/tarot_data.dart';
 import 'package:zhaoxingzhai/features/cases/presentation/cases_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
+import 'package:zhaoxingzhai/features/oracle/presentation/oracle_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
 import 'package:zhaoxingzhai/features/xiaoliuren/presentation/xiaoliuren_page.dart';
 import 'package:zhaoxingzhai/main.dart';
@@ -20,7 +22,23 @@ Future<void> _pumpApp(WidgetTester tester, Size size) async {
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(const MyApp());
-  await tester.pumpAndSettle();
+  // AppShell 会保留已访问页面状态，测试启动只需要完成首屏布局。
+  // 不在这里等待全局“完全 settle”，避免未来某个常驻动画或异步页面
+  // 让所有与该页面无关的外壳测试一起超时。
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
+Future<void> _pumpUntilFound(
+  WidgetTester tester,
+  Finder finder, {
+  int maxFrames = 100,
+}) async {
+  for (var frame = 0; frame < maxFrames; frame++) {
+    await tester.pump(const Duration(milliseconds: 20));
+    if (finder.evaluate().isNotEmpty) return;
+  }
+  fail('等待组件超时：$finder');
 }
 
 void main() {
@@ -106,6 +124,25 @@ void main() {
     expect(find.text('单牌指引'), findsWidgets);
     expect(find.text('爱情牌阵'), findsOneWidget);
     expect(find.text('十二宫牌阵'), findsOneWidget);
+  });
+
+  testWidgets('侧栏可以进入灵签并按签号查询', (WidgetTester tester) async {
+    // rootBundle 的异步资源加载不依赖 widget 测试的假时钟推进；先完成
+    // 数据预热，再验证页面挂载和交互，避免对加载动画使用 pumpAndSettle。
+    await tester.runAsync(SsgwData.load);
+    await _pumpApp(tester, _wideSize);
+
+    await tester.tap(find.text('灵签'));
+    await _pumpUntilFound(tester, find.text('随机抽签'));
+
+    expect(find.byType(OraclePage), findsOneWidget);
+    expect(find.text('随机抽签'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '1');
+    await tester.tap(find.text('查询签文'));
+    await _pumpUntilFound(tester, find.text('第1签'));
+
+    expect(find.text('第1签'), findsOneWidget);
+    expect(find.textContaining('第一签'), findsWidgets);
   });
 
   testWidgets('塔罗支持切换到手动录牌并校验完整输入', (WidgetTester tester) async {

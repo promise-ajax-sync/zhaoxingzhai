@@ -1,0 +1,114 @@
+{
+  "source": "mingyu/packages/core/src/divination/tarot.ts#drawSpreadCards",
+  "mingyuVersion": "0.4.0",
+  "algorithmVersion": 1,
+  "randomAlgorithmId": "fnv1a32-mulberry32",
+  "randomAlgorithmVersion": 2,
+  "cases": [
+    {
+      "caseId": "single-fixed",
+      "spreadType": "single",
+      "seed": "塔罗-golden-单牌",
+      "expected": [
+        {
+          "cardId": 18,
+          "name": "星星",
+          "position": "当前指引",
+          "orientation": "正位"
+        }
+      ]
+    },
+    {
+      "caseId": "three-fixed",
+      "spreadType": "three",
+      "seed": "塔罗-golden-三牌",
+      "expected": [
+        {
+          "cardId": 17,
+          "name": "塔",
+          "position": "过去",
+          "orientation": "逆位"
+        },
+        {
+          "cardId": 68,
+          "name": "钱币四",
+          "position": "现在",
+          "orientation": "正位"
+        },
+        {
+          "cardId": 42,
+          "name": "圣杯六",
+          "position": "未来",
+          "orientation": "逆位"
+        }
+      ]
+    },
+    {
+      "caseId": "celtic-fixed",
+      "spreadType": "celtic",
+      "seed": "塔罗-golden-凯尔特",
+      "expected": [
+        {
+          "cardId": 36,
+          "name": "权杖国王",
+          "position": "当前状况",
+          "orientation": "逆位"
+        },
+        {
+          "cardId": 29,
+          "name": "权杖七",
+          "position": "挑战/阻碍",
+          "orientation": "逆位"
+        },
+        {
+          "cardId": 12,
+          "name": "正义",
+          "position": "目标与潜能",
+          "orientation": "正位"
+        },
+        {
+          "cardId": 48,
+          "name": "圣杯骑士",
+          "position": "现实基础",
+          "orientation": "正位"
+        },
+        {
+          "cardId": 65,
+          "name": "钱币王牌",
+          "position": "过去影响",
+          "orientation": "逆位"
+        },
+        {
+          "cardId": 32,
+          "name": "权杖十",
+          "position": "近期未来",
+          "orientation": "正位"
+        },
+        {
+          "cardId": 16,
+          "name": "恶魔",
+          "position": "你的态度",
+          "orientation": "逆位"
+        },
+        {
+          "cardId": 77,
+          "name": "钱币王后",
+          "position": "外界影响",
+          "orientation": "逆位"
+        },
+        {
+          "cardId": 15,
+          "name": "节制",
+          "position": "希望与恐惧",
+          "orientation": "逆位"
+        },
+        {
+          "cardId": 58,
+          "name": "宝剑八",
+          "position": "最终结果",
+          "orientation": "正位"
+        }
+      ]
+    }
+  ]
+}

@@ -42,4 +42,16 @@ abstract final class AlgorithmCatalog {
     version: 1,
     ruleset: 'rider-waite-78',
   );
+
+  static const ssgwDraw = AlgorithmDescriptor(
+    id: 'ssgw.draw',
+    version: 1,
+    ruleset: 'ssgw-92-signs-random',
+  );
+
+  static const ssgwManual = AlgorithmDescriptor(
+    id: 'ssgw.resolve.manual',
+    version: 1,
+    ruleset: 'ssgw-92-signs-manual',
+  );
 }

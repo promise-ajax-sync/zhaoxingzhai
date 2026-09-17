@@ -12,6 +12,7 @@ import 'package:zhaoxingzhai/features/cases/presentation/cases_page.dart';
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
 import 'package:zhaoxingzhai/features/history/presentation/history_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
+import 'package:zhaoxingzhai/features/oracle/presentation/oracle_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
 import 'package:zhaoxingzhai/features/xiaoliuren/presentation/xiaoliuren_page.dart';
 
@@ -28,6 +29,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   AppView _view = AppView.tools;
+  final Set<AppView> _visitedViews = {AppView.tools};
   AnswerPreference _preference = AnswerPreference.chat;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -40,6 +42,12 @@ class _AppShellState extends State<AppShell> {
     AppView.tools: HomePage(onOpenFeature: _open),
     AppView.xiaoliuren: XiaoliurenPage(
       onResult: (result) => _historyRepository.addXiaoliuren(
+        result,
+        caseSnapshot: _caseSelection.currentSnapshot,
+      ),
+    ),
+    AppView.oracle: OraclePage(
+      onResult: (result) => _historyRepository.addSsgw(
         result,
         caseSnapshot: _caseSelection.currentSnapshot,
       ),
@@ -74,7 +82,10 @@ class _AppShellState extends State<AppShell> {
 
   void _open(AppView view) {
     if (view == _view) return;
-    setState(() => _view = view);
+    setState(() {
+      _visitedViews.add(view);
+      _view = view;
+    });
   }
 
   /// 全局历史作为独立抽屉打开，不与案例页混用。
@@ -122,7 +133,15 @@ class _AppShellState extends State<AppShell> {
 
     final content = IndexedStack(
       index: _view.index,
-      children: [for (final view in AppView.values) _pageFor(view)],
+      children: [
+        for (final view in AppView.values)
+          // 数据较大的术式只在首次进入时挂载；进入后继续留在
+          // IndexedStack 中，因此切换页面仍能保留状态。
+          if (_visitedViews.contains(view))
+            _pageFor(view)
+          else
+            const SizedBox(),
+      ],
     );
 
     if (wide) {

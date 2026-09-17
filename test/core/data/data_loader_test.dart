@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zhaoxingzhai/core/data/tarot_data.dart';
 import 'package:zhaoxingzhai/core/data/hexagram_data.dart';
 import 'package:zhaoxingzhai/core/data/ganzhi_data.dart';
+import 'package:zhaoxingzhai/core/data/ssgw_data.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,22 @@ void main() {
       await TarotData.load();
       final card = TarotData.getCardByNumber(1);
       expect(card?.name, '愚者');
+      expect(card?.keywords, ['新开始', '冒险', '纯真']);
+    });
+
+    test('全部 78 张牌都应包含由上游同步的有效关键词', () async {
+      await TarotData.load();
+      expect(TarotData.cards, hasLength(78));
+      for (final card in TarotData.cards) {
+        expect(card.keywords, isNotEmpty, reason: card.name);
+        expect(
+          card.keywords.every((keyword) => keyword.trim().isNotEmpty),
+          isTrue,
+          reason: card.name,
+        );
+        expect(TarotData.getCardByName(card.name), same(card));
+      }
+      expect(TarotData.getCardByName('不存在的牌'), isNull);
     });
 
     test('不存在的塔罗编号应返回 null', () async {
@@ -81,5 +98,12 @@ void main() {
       expect(jiazi.first, '甲子');
       expect(jiazi.last, '癸亥');
     });
+  });
+
+  test('三山国王灵签数据应包含完整 92 签', () async {
+    await SsgwData.load();
+    expect(SsgwData.signs, hasLength(92));
+    expect(SsgwData.getByNumber(1)?.title, contains('第一签'));
+    expect(SsgwData.getByNumber(92)?.title, contains('第九十二签'));
   });
 }

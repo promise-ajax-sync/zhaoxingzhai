@@ -1,454 +1,845 @@
 {
   "_meta": {
     "source": "mingyu/packages/core/src/divination/tarot-data.ts",
+    "keywordsSource": "mingyu/packages/core/src/divination/tarot.ts#getCardKeywords",
     "mingyuVersion": "0.4.0"
   },
   "cards": [
     {
       "name": "愚者",
       "type": "大阿卡纳",
-      "number": 1
+      "number": 1,
+      "keywords": [
+        "新开始",
+        "冒险",
+        "纯真"
+      ]
     },
     {
       "name": "魔术师",
       "type": "大阿卡纳",
-      "number": 2
+      "number": 2,
+      "keywords": [
+        "意志力",
+        "创造",
+        "技能"
+      ]
     },
     {
       "name": "女祭司",
       "type": "大阿卡纳",
-      "number": 3
+      "number": 3,
+      "keywords": [
+        "直觉",
+        "神秘",
+        "内在智慧"
+      ]
     },
     {
       "name": "女皇",
       "type": "大阿卡纳",
-      "number": 4
+      "number": 4,
+      "keywords": [
+        "丰饶",
+        "母性",
+        "创造力"
+      ]
     },
     {
       "name": "皇帝",
       "type": "大阿卡纳",
-      "number": 5
+      "number": 5,
+      "keywords": [
+        "权威",
+        "稳定",
+        "父性"
+      ]
     },
     {
       "name": "教皇",
       "type": "大阿卡纳",
-      "number": 6
+      "number": 6,
+      "keywords": [
+        "传统",
+        "精神指导",
+        "宗教"
+      ]
     },
     {
       "name": "恋人",
       "type": "大阿卡纳",
-      "number": 7
+      "number": 7,
+      "keywords": [
+        "爱情",
+        "选择",
+        "和谐"
+      ]
     },
     {
       "name": "战车",
       "type": "大阿卡纳",
-      "number": 8
+      "number": 8,
+      "keywords": [
+        "胜利",
+        "意志力",
+        "控制"
+      ]
     },
     {
       "name": "力量",
       "type": "大阿卡纳",
-      "number": 9
+      "number": 9,
+      "keywords": [
+        "勇气",
+        "耐心",
+        "内在力量"
+      ]
     },
     {
       "name": "隐士",
       "type": "大阿卡纳",
-      "number": 10
+      "number": 10,
+      "keywords": [
+        "内省",
+        "寻找",
+        "智慧"
+      ]
     },
     {
       "name": "命运之轮",
       "type": "大阿卡纳",
-      "number": 11
+      "number": 11,
+      "keywords": [
+        "命运",
+        "变化",
+        "循环"
+      ]
     },
     {
       "name": "正义",
       "type": "大阿卡纳",
-      "number": 12
+      "number": 12,
+      "keywords": [
+        "公正",
+        "平衡",
+        "真理"
+      ]
     },
     {
       "name": "倒吊人",
       "type": "大阿卡纳",
-      "number": 13
+      "number": 13,
+      "keywords": [
+        "牺牲",
+        "等待",
+        "新视角"
+      ]
     },
     {
       "name": "死神",
       "type": "大阿卡纳",
-      "number": 14
+      "number": 14,
+      "keywords": [
+        "转变",
+        "结束",
+        "重生"
+      ]
     },
     {
       "name": "节制",
       "type": "大阿卡纳",
-      "number": 15
+      "number": 15,
+      "keywords": [
+        "平衡",
+        "耐心",
+        "调和"
+      ]
     },
     {
       "name": "恶魔",
       "type": "大阿卡纳",
-      "number": 16
+      "number": 16,
+      "keywords": [
+        "诱惑",
+        "束缚",
+        "物质"
+      ]
     },
     {
       "name": "塔",
       "type": "大阿卡纳",
-      "number": 17
+      "number": 17,
+      "keywords": [
+        "突变",
+        "破坏",
+        "启示"
+      ]
     },
     {
       "name": "星星",
       "type": "大阿卡纳",
-      "number": 18
+      "number": 18,
+      "keywords": [
+        "希望",
+        "灵感",
+        "指引"
+      ]
     },
     {
       "name": "月亮",
       "type": "大阿卡纳",
-      "number": 19
+      "number": 19,
+      "keywords": [
+        "幻象",
+        "恐惧",
+        "潜意识"
+      ]
     },
     {
       "name": "太阳",
       "type": "大阿卡纳",
-      "number": 20
+      "number": 20,
+      "keywords": [
+        "成功",
+        "喜悦",
+        "活力"
+      ]
     },
     {
       "name": "审判",
       "type": "大阿卡纳",
-      "number": 21
+      "number": 21,
+      "keywords": [
+        "重生",
+        "觉醒",
+        "宽恕"
+      ]
     },
     {
       "name": "世界",
       "type": "大阿卡纳",
-      "number": 22
+      "number": 22,
+      "keywords": [
+        "完成",
+        "成就",
+        "圆满"
+      ]
     },
     {
       "name": "权杖王牌",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 23
+      "number": 23,
+      "keywords": [
+        "新机会",
+        "创造力",
+        "灵感"
+      ]
     },
     {
       "name": "权杖二",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 24
+      "number": 24,
+      "keywords": [
+        "计划",
+        "未来",
+        "个人力量"
+      ]
     },
     {
       "name": "权杖三",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 25
+      "number": 25,
+      "keywords": [
+        "扩张",
+        "远见",
+        "领导力"
+      ]
     },
     {
       "name": "权杖四",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 26
+      "number": 26,
+      "keywords": [
+        "庆祝",
+        "和谐",
+        "家庭"
+      ]
     },
     {
       "name": "权杖五",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 27
+      "number": 27,
+      "keywords": [
+        "冲突",
+        "竞争",
+        "分歧"
+      ]
     },
     {
       "name": "权杖六",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 28
+      "number": 28,
+      "keywords": [
+        "胜利",
+        "公众认可",
+        "进步"
+      ]
     },
     {
       "name": "权杖七",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 29
+      "number": 29,
+      "keywords": [
+        "挑战",
+        "坚持",
+        "防御"
+      ]
     },
     {
       "name": "权杖八",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 30
+      "number": 30,
+      "keywords": [
+        "快速行动",
+        "急速",
+        "消息"
+      ]
     },
     {
       "name": "权杖九",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 31
+      "number": 31,
+      "keywords": [
+        "坚韧",
+        "毅力",
+        "最后防线"
+      ]
     },
     {
       "name": "权杖十",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 32
+      "number": 32,
+      "keywords": [
+        "负担",
+        "责任",
+        "努力"
+      ]
     },
     {
       "name": "权杖侍者",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 33
+      "number": 33,
+      "keywords": [
+        "热情",
+        "探索",
+        "信使"
+      ]
     },
     {
       "name": "权杖骑士",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 34
+      "number": 34,
+      "keywords": [
+        "能量",
+        "激情",
+        "行动"
+      ]
     },
     {
       "name": "权杖王后",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 35
+      "number": 35,
+      "keywords": [
+        "自信",
+        "魅力",
+        "独立"
+      ]
     },
     {
       "name": "权杖国王",
       "type": "小阿卡纳",
       "suit": "权杖",
-      "number": 36
+      "number": 36,
+      "keywords": [
+        "领导力",
+        "远见",
+        "权威"
+      ]
     },
     {
       "name": "圣杯王牌",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 37
+      "number": 37,
+      "keywords": [
+        "新感情",
+        "爱",
+        "创造力"
+      ]
     },
     {
       "name": "圣杯二",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 38
+      "number": 38,
+      "keywords": [
+        "结合",
+        "伙伴",
+        "吸引"
+      ]
     },
     {
       "name": "圣杯三",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 39
+      "number": 39,
+      "keywords": [
+        "庆祝",
+        "友谊",
+        "社群"
+      ]
     },
     {
       "name": "圣杯四",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 40
+      "number": 40,
+      "keywords": [
+        "冷漠",
+        "沉思",
+        "重评"
+      ]
     },
     {
       "name": "圣杯五",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 41
+      "number": 41,
+      "keywords": [
+        "失落",
+        "悲伤",
+        "失望"
+      ]
     },
     {
       "name": "圣杯六",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 42
+      "number": 42,
+      "keywords": [
+        "怀旧",
+        "童年",
+        "重逢"
+      ]
     },
     {
       "name": "圣杯七",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 43
+      "number": 43,
+      "keywords": [
+        "幻想",
+        "选择",
+        "白日梦"
+      ]
     },
     {
       "name": "圣杯八",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 44
+      "number": 44,
+      "keywords": [
+        "放弃",
+        "前行",
+        "寻找"
+      ]
     },
     {
       "name": "圣杯九",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 45
+      "number": 45,
+      "keywords": [
+        "满足",
+        "愿望成真",
+        "舒适"
+      ]
     },
     {
       "name": "圣杯十",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 46
+      "number": 46,
+      "keywords": [
+        "和谐",
+        "家庭",
+        "幸福"
+      ]
     },
     {
       "name": "圣杯侍者",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 47
+      "number": 47,
+      "keywords": [
+        "创意",
+        "直觉",
+        "信使"
+      ]
     },
     {
       "name": "圣杯骑士",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 48
+      "number": 48,
+      "keywords": [
+        "浪漫",
+        "魅力",
+        "想象"
+      ]
     },
     {
       "name": "圣杯王后",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 49
+      "number": 49,
+      "keywords": [
+        "同情",
+        "平静",
+        "直觉"
+      ]
     },
     {
       "name": "圣杯国王",
       "type": "小阿卡纳",
       "suit": "圣杯",
-      "number": 50
+      "number": 50,
+      "keywords": [
+        "情绪成熟",
+        "控制",
+        "慈悲"
+      ]
     },
     {
       "name": "宝剑王牌",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 51
+      "number": 51,
+      "keywords": [
+        "清晰",
+        "真理",
+        "新想法"
+      ]
     },
     {
       "name": "宝剑二",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 52
+      "number": 52,
+      "keywords": [
+        "僵局",
+        "逃避",
+        "艰难选择"
+      ]
     },
     {
       "name": "宝剑三",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 53
+      "number": 53,
+      "keywords": [
+        "心碎",
+        "悲伤",
+        "真相"
+      ]
     },
     {
       "name": "宝剑四",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 54
+      "number": 54,
+      "keywords": [
+        "休息",
+        "休战",
+        "沉思"
+      ]
     },
     {
       "name": "宝剑五",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 55
+      "number": 55,
+      "keywords": [
+        "冲突",
+        "失败",
+        "不光彩的胜利"
+      ]
     },
     {
       "name": "宝剑六",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 56
+      "number": 56,
+      "keywords": [
+        "过渡",
+        "前行",
+        "解脱"
+      ]
     },
     {
       "name": "宝剑七",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 57
+      "number": 57,
+      "keywords": [
+        "欺骗",
+        "策略",
+        "不诚实"
+      ]
     },
     {
       "name": "宝剑八",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 58
+      "number": 58,
+      "keywords": [
+        "限制",
+        "孤立",
+        "自我束缚"
+      ]
     },
     {
       "name": "宝剑九",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 59
+      "number": 59,
+      "keywords": [
+        "焦虑",
+        "噩梦",
+        "恐惧"
+      ]
     },
     {
       "name": "宝剑十",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 60
+      "number": 60,
+      "keywords": [
+        "终结",
+        "背叛",
+        "谷底"
+      ]
     },
     {
       "name": "宝剑侍者",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 61
+      "number": 61,
+      "keywords": [
+        "好奇",
+        "警惕",
+        "信使"
+      ]
     },
     {
       "name": "宝剑骑士",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 62
+      "number": 62,
+      "keywords": [
+        "野心",
+        "仓促",
+        "行动"
+      ]
     },
     {
       "name": "宝剑王后",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 63
+      "number": 63,
+      "keywords": [
+        "独立",
+        "清晰",
+        "智慧"
+      ]
     },
     {
       "name": "宝剑国王",
       "type": "小阿卡纳",
       "suit": "宝剑",
-      "number": 64
+      "number": 64,
+      "keywords": [
+        "权威",
+        "真理",
+        "智力"
+      ]
     },
     {
       "name": "钱币王牌",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 65
+      "number": 65,
+      "keywords": [
+        "机会",
+        "繁荣",
+        "新事业"
+      ]
     },
     {
       "name": "钱币二",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 66
+      "number": 66,
+      "keywords": [
+        "平衡",
+        "适应",
+        "变化"
+      ]
     },
     {
       "name": "钱币三",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 67
+      "number": 67,
+      "keywords": [
+        "团队合作",
+        "技艺",
+        "品质"
+      ]
     },
     {
       "name": "钱币四",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 68
+      "number": 68,
+      "keywords": [
+        "占有",
+        "控制",
+        "稳定"
+      ]
     },
     {
       "name": "钱币五",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 69
+      "number": 69,
+      "keywords": [
+        "贫困",
+        "逆境",
+        "孤立"
+      ]
     },
     {
       "name": "钱币六",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 70
+      "number": 70,
+      "keywords": [
+        "慷慨",
+        "慈善",
+        "分享"
+      ]
     },
     {
       "name": "钱币七",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 71
+      "number": 71,
+      "keywords": [
+        "耐心",
+        "投资",
+        "回报"
+      ]
     },
     {
       "name": "钱币八",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 72
+      "number": 72,
+      "keywords": [
+        "技能",
+        "勤奋",
+        "精通"
+      ]
     },
     {
       "name": "钱币九",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 73
+      "number": 73,
+      "keywords": [
+        "富足",
+        "独立",
+        "享受"
+      ]
     },
     {
       "name": "钱币十",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 74
+      "number": 74,
+      "keywords": [
+        "财富",
+        "传承",
+        "家庭"
+      ]
     },
     {
       "name": "钱币侍者",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 75
+      "number": 75,
+      "keywords": [
+        "新机会",
+        "学习",
+        "梦想"
+      ]
     },
     {
       "name": "钱币骑士",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 76
+      "number": 76,
+      "keywords": [
+        "勤奋",
+        "可靠",
+        "责任"
+      ]
     },
     {
       "name": "钱币王后",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 77
+      "number": 77,
+      "keywords": [
+        "务实",
+        "母性",
+        "滋养"
+      ]
     },
     {
       "name": "钱币国王",
       "type": "小阿卡纳",
       "suit": "钱币",
-      "number": 78
+      "number": 78,
+      "keywords": [
+        "富裕",
+        "成功",
+        "安全"
+      ]
     }
   ],
   "spreads": {

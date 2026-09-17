@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 
 /// 计算中的动画效果
 class CalculatingAnimation extends StatefulWidget {
@@ -29,15 +30,13 @@ class _CalculatingAnimationState extends State<CalculatingAnimation>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(48),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2636).withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE9A568).withValues(alpha: 0.3),
-          width: 1,
-        ),
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -54,15 +53,15 @@ class _CalculatingAnimationState extends State<CalculatingAnimation>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFFE9A568),
+                      color: theme.colorScheme.primary,
                       width: 3,
                     ),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
                       '卜',
                       style: TextStyle(
-                        color: Color(0xFFE9A568),
+                        color: theme.colorScheme.primary,
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
                       ),
@@ -73,10 +72,10 @@ class _CalculatingAnimationState extends State<CalculatingAnimation>
             },
           ),
           const SizedBox(height: 32),
-          const Text(
+          Text(
             '推演卦象中...',
             style: TextStyle(
-              color: Color(0xFFE9A568),
+              color: theme.colorScheme.primary,
               fontSize: 20,
               fontWeight: FontWeight.bold,
               letterSpacing: 2,
@@ -86,7 +85,7 @@ class _CalculatingAnimationState extends State<CalculatingAnimation>
           Text(
             '月日时三宫推算',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: theme.textTheme.bodySmall?.color,
               fontSize: 14,
             ),
           ),

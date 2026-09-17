@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/rules.dart';
+import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 
 /// 结果展示区域
 class ResultDisplaySection extends StatelessWidget {
@@ -18,24 +19,25 @@ class ResultDisplaySection extends StatelessWidget {
     return Column(
       children: [
         // 主断区域
-        _buildMainResult(),
+        _buildMainResult(context),
         const SizedBox(height: 20),
 
         // 三宫展示
-        _buildThreePalaces(),
+        _buildThreePalaces(context),
         const SizedBox(height: 20),
 
         // 计算过程
-        _buildCalculationProcess(),
+        _buildCalculationProcess(context),
         const SizedBox(height: 32),
 
         // 重新占卜按钮
-        _buildResetButton(),
+        _buildResetButton(context),
       ],
     );
   }
 
-  Widget _buildMainResult() {
+  Widget _buildMainResult(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -43,22 +45,19 @@ class ResultDisplaySection extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFFE9A568).withValues(alpha: 0.2),
-            const Color(0xFF1E2636).withValues(alpha: 0.6),
+            AppTheme.accentSoft(context),
+            theme.cardTheme.color ?? theme.colorScheme.surface,
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE9A568),
-          width: 2,
-        ),
+        border: Border.all(color: theme.colorScheme.primary, width: 2),
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             '卦象',
             style: TextStyle(
-              color: Color(0xFFE9A568),
+              color: theme.colorScheme.primary,
               fontSize: 16,
               letterSpacing: 2,
             ),
@@ -66,8 +65,8 @@ class ResultDisplaySection extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             result.primary.name,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
               fontSize: 48,
               fontWeight: FontWeight.bold,
               letterSpacing: 4,
@@ -77,7 +76,7 @@ class ResultDisplaySection extends StatelessWidget {
           Text(
             result.primary.verse,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.85),
+              color: theme.textTheme.bodyMedium?.color,
               fontSize: 15,
               height: 1.8,
             ),
@@ -88,16 +87,14 @@ class ResultDisplaySection extends StatelessWidget {
     );
   }
 
-  Widget _buildThreePalaces() {
+  Widget _buildThreePalaces(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2636).withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE9A568).withValues(alpha: 0.3),
-          width: 1,
-        ),
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,7 +102,7 @@ class ResultDisplaySection extends StatelessWidget {
           Text(
             '三宫推演',
             style: TextStyle(
-              color: const Color(0xFFE9A568).withValues(alpha: 0.9),
+              color: theme.colorScheme.primary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.5,
@@ -114,11 +111,25 @@ class ResultDisplaySection extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildPalaceCard('月宫', result.sequence['month']!)),
+              Expanded(
+                child: _buildPalaceCard(
+                  context,
+                  '月宫',
+                  result.sequence['month']!,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _buildPalaceCard('日宫', result.sequence['day']!)),
+              Expanded(
+                child: _buildPalaceCard(context, '日宫', result.sequence['day']!),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _buildPalaceCard('时宫', result.sequence['hour']!)),
+              Expanded(
+                child: _buildPalaceCard(
+                  context,
+                  '时宫',
+                  result.sequence['hour']!,
+                ),
+              ),
             ],
           ),
         ],
@@ -126,30 +137,33 @@ class ResultDisplaySection extends StatelessWidget {
     );
   }
 
-  Widget _buildPalaceCard(String label, XiaoliurenPalaceDetail palace) {
+  Widget _buildPalaceCard(
+    BuildContext context,
+    String label,
+    XiaoliurenPalaceDetail palace,
+  ) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F131C),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE9A568).withValues(alpha: 0.2),
-        ),
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         children: [
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: theme.textTheme.labelSmall?.color,
               fontSize: 12,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             palace.name,
-            style: const TextStyle(
-              color: Color(0xFFE9A568),
+            style: TextStyle(
+              color: theme.colorScheme.primary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -159,32 +173,26 @@ class ResultDisplaySection extends StatelessWidget {
     );
   }
 
-  Widget _buildCalculationProcess() {
+  Widget _buildCalculationProcess(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2636).withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE9A568).withValues(alpha: 0.2),
-          width: 1,
-        ),
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.calculate,
-                color: Color(0xFFE9A568),
-                size: 20,
-              ),
+              Icon(Icons.calculate, color: theme.colorScheme.primary, size: 20),
               const SizedBox(width: 8),
               Text(
                 '推演过程',
                 style: TextStyle(
-                  color: const Color(0xFFE9A568).withValues(alpha: 0.9),
+                  color: theme.colorScheme.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -192,22 +200,33 @@ class ResultDisplaySection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildProcessStep('农历月', result.lunarMonth.toString()),
-          _buildProcessStep('农历日', result.lunarDay.toString()),
-          _buildProcessStep('时辰', result.hourLabel),
-          const Divider(
-            color: Color(0xFFE9A568),
-            thickness: 1,
-            height: 24,
+          _buildProcessStep(context, '农历月', result.lunarMonth.toString()),
+          _buildProcessStep(context, '农历日', result.lunarDay.toString()),
+          _buildProcessStep(context, '时辰', result.hourLabel),
+          Divider(color: theme.dividerColor, thickness: 1, height: 24),
+          _buildProcessStep(
+            context,
+            '月宫',
+            result.sequence['month']!.name,
+            isHighlight: true,
           ),
-          _buildProcessStep('月宫', result.sequence['month']!.name, isHighlight: true),
-          _buildProcessStep('日宫', result.sequence['day']!.name, isHighlight: true),
-          _buildProcessStep('时宫', result.sequence['hour']!.name, isHighlight: true),
+          _buildProcessStep(
+            context,
+            '日宫',
+            result.sequence['day']!.name,
+            isHighlight: true,
+          ),
+          _buildProcessStep(
+            context,
+            '时宫',
+            result.sequence['hour']!.name,
+            isHighlight: true,
+          ),
           const SizedBox(height: 8),
           Text(
             '起课规则：${result.rule == XiaoliurenRule.common ? "通行掌诀" : "多能鄙事"}',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: theme.textTheme.labelSmall?.color,
               fontSize: 13,
               fontStyle: FontStyle.italic,
             ),
@@ -217,7 +236,13 @@ class ResultDisplaySection extends StatelessWidget {
     );
   }
 
-  Widget _buildProcessStep(String label, String value, {bool isHighlight = false}) {
+  Widget _buildProcessStep(
+    BuildContext context,
+    String label,
+    String value, {
+    bool isHighlight = false,
+  }) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -226,7 +251,9 @@ class ResultDisplaySection extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: isHighlight ? const Color(0xFFE9A568) : Colors.white.withValues(alpha: 0.7),
+              color: isHighlight
+                  ? theme.colorScheme.primary
+                  : theme.textTheme.bodySmall?.color,
               fontSize: isHighlight ? 16 : 14,
               fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
             ),
@@ -234,7 +261,9 @@ class ResultDisplaySection extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: isHighlight ? const Color(0xFFE9A568) : Colors.white,
+              color: isHighlight
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
               fontSize: isHighlight ? 18 : 15,
               fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
             ),
@@ -244,19 +273,15 @@ class ResultDisplaySection extends StatelessWidget {
     );
   }
 
-  Widget _buildResetButton() {
+  Widget _buildResetButton(BuildContext context) {
+    final theme = Theme.of(context);
     return OutlinedButton(
       onPressed: onReset,
       style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFFE9A568),
-        side: const BorderSide(
-          color: Color(0xFFE9A568),
-          width: 2,
-        ),
+        foregroundColor: theme.colorScheme.primary,
+        side: BorderSide(color: theme.colorScheme.primary, width: 2),
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
       child: const Text(
         '重新占卜',

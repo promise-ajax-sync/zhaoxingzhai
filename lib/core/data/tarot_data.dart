@@ -11,12 +11,14 @@ class TarotCard {
   final String type;
   final int number;
   final String? suit;
+  final List<String> keywords;
 
   const TarotCard({
     required this.name,
     required this.type,
     required this.number,
     this.suit,
+    required this.keywords,
   });
 
   factory TarotCard.fromJson(Map<String, dynamic> json) {
@@ -25,6 +27,7 @@ class TarotCard {
       type: json['type'] as String,
       number: json['number'] as int,
       suit: json['suit'] as String?,
+      keywords: (json['keywords'] as List).cast<String>(),
     );
   }
 
@@ -34,6 +37,7 @@ class TarotCard {
       'type': type,
       'number': number,
       if (suit != null) 'suit': suit,
+      'keywords': keywords,
     };
   }
 }
@@ -105,6 +109,14 @@ class TarotData {
   static TarotCard? getCardByNumber(int number) {
     for (final card in cards) {
       if (card.number == number) return card;
+    }
+    return null;
+  }
+
+  /// 根据牌名获取塔罗牌。
+  static TarotCard? getCardByName(String name) {
+    for (final card in cards) {
+      if (card.name == name) return card;
     }
     return null;
   }

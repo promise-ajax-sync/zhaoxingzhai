@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zhaoxingzhai/core/data/tarot_data.dart' as tarot_loader;
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 import 'package:zhaoxingzhai/core/widgets/app_widgets.dart';
-import 'package:zhaoxingzhai/features/tarot/tarot_divination.dart';
+import 'package:zhaoxingzhai/core/engine/tarot/tarot_divination.dart';
 
 class TarotManualInput extends StatefulWidget {
   final String spreadType;

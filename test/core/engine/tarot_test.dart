@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zhaoxingzhai/core/data/tarot_data.dart';
 import 'package:zhaoxingzhai/core/shared/random.dart';
-import 'package:zhaoxingzhai/features/tarot/tarot_divination.dart';
+import 'package:zhaoxingzhai/core/engine/tarot/tarot_divination.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +25,16 @@ void main() {
       expect(first.randomTrace?.algorithmVersion, randomAlgorithmVersion);
       expect(first.algorithm.id, 'tarot');
       expect(first.algorithm.version, 1);
+      expect(first.cards.every((card) => card.keywords.isNotEmpty), isTrue);
+    });
+
+    test('牌面证据关键词应直接来自数据资产', () {
+      final result = TarotDivination().drawManual('single', const [
+        ManualCardInput(id: 1, reversed: false),
+      ]);
+
+      expect(result.cards.single.name, '愚者');
+      expect(result.cards.single.keywords, TarotData.cards.first.keywords);
     });
 
     test('随机轨迹应能完整 replay', () {

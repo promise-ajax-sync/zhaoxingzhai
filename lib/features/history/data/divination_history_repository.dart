@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
+import 'package:zhaoxingzhai/core/engine/ssgw/ssgw_divination.dart';
 import 'package:zhaoxingzhai/core/models/case_profile.dart';
 import 'package:zhaoxingzhai/core/shared/result.dart';
-import 'package:zhaoxingzhai/features/tarot/tarot_divination.dart';
+import 'package:zhaoxingzhai/core/engine/tarot/tarot_divination.dart';
 
 /// 一条占卜历史记录。
 ///
@@ -45,6 +46,7 @@ class DivinationHistoryRecord {
   String get typeLabel => switch (type) {
     'xiaoliuren' => '小六壬',
     'tarot' => '塔罗',
+    'ssgw' => '灵签',
     _ => type,
   };
 
@@ -79,11 +81,7 @@ class DivinationHistoryRecord {
     final algorithmMap = algorithm is Map
         ? Map<String, dynamic>.from(algorithm)
         : const <String, dynamic>{};
-    final fallback = <String, dynamic>{
-      ...metaMap,
-      ...algorithmMap,
-      ...payload,
-    };
+    final fallback = <String, dynamic>{...metaMap, ...algorithmMap, ...payload};
 
     final snapshotRaw = json['caseSnapshot'];
     final snapshot = snapshotRaw is Map
@@ -98,11 +96,15 @@ class DivinationHistoryRecord {
       createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       payload: payload,
       algorithmId:
-          json['algorithmId'] as String? ?? fallback['algorithm'] as String? ?? 'unknown',
-      algorithmVersion: (json['algorithmVersion'] as num?)?.toInt() ??
+          json['algorithmId'] as String? ??
+          fallback['algorithm'] as String? ??
+          'unknown',
+      algorithmVersion:
+          (json['algorithmVersion'] as num?)?.toInt() ??
           (fallback['algorithmVersion'] as num?)?.toInt() ??
           0,
-      schemaVersion: json['schemaVersion'] as String? ??
+      schemaVersion:
+          json['schemaVersion'] as String? ??
           fallback['schemaVersion'] as String? ??
           'unknown',
       caseSnapshot: snapshot,
@@ -232,6 +234,24 @@ class DivinationHistoryRepository extends ChangeNotifier {
         algorithmId: result.meta.algorithm,
         algorithmVersion: result.meta.algorithmVersion,
         schemaVersion: result.meta.schemaVersion,
+        caseSnapshot: caseSnapshot,
+      ),
+    );
+  }
+
+  Future<void> addSsgw(SsgwResult result, {CaseSnapshot? caseSnapshot}) async {
+    await add(
+      DivinationHistoryRecord(
+        id: 'ssgw:${result.timestamp.microsecondsSinceEpoch}',
+        type: 'ssgw',
+        title: result.sign.title,
+        summary:
+            '第${result.sign.number}签 · ${result.sign.poem.replaceAll('\n', ' ')}',
+        createdAt: result.timestamp,
+        payload: result.toJson(),
+        algorithmId: result.algorithm.id,
+        algorithmVersion: result.algorithm.version,
+        schemaVersion: mingyuSchemaVersion,
         caseSnapshot: caseSnapshot,
       ),
     );

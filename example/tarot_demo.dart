@@ -4,7 +4,7 @@
 library;
 
 import 'package:zhaoxingzhai/core/data/tarot_data.dart';
-import 'package:zhaoxingzhai/features/tarot/tarot_divination.dart';
+import 'package:zhaoxingzhai/core/engine/tarot/tarot_divination.dart';
 
 void main() async {
   print('🔮 塔罗占卜示例\n');

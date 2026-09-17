@@ -1,0 +1,36 @@
+{
+  "source": "mingyu ssgw-data + shared/random (equivalent to drawRandomSign selection)",
+  "mingyuVersion": "0.4.0",
+  "algorithmVersion": 1,
+  "randomAlgorithmId": "fnv1a32-mulberry32",
+  "randomAlgorithmVersion": 2,
+  "cases": [
+    {
+      "caseId": "seed-1",
+      "seed": "灵签-golden-甲",
+      "expected": {
+        "number": 92,
+        "title": "第九十二签 · 一本万殊，万殊一本（平安）",
+        "poem": "万紫千红总是春，千山万水归一尘。\n本来无事常清净，何须向外觅通津。"
+      }
+    },
+    {
+      "caseId": "seed-2",
+      "seed": "灵签-golden-乙",
+      "expected": {
+        "number": 6,
+        "title": "第六签 · 凤鸣岐山，麟游帝苑（大吉）",
+        "poem": "凤凰鸣矣岐山鸣，麟趾呈祥瑞世生。\n盛世明时君去广，大扬丕德播芳声。"
+      }
+    },
+    {
+      "caseId": "seed-3",
+      "seed": "灵签-golden-丙",
+      "expected": {
+        "number": 70,
+        "title": "第七十签 · 盲人摸象，管中窥豹（平）",
+        "poem": "盲人摸象各说异，管中窥豹只见斑。\n若欲洞明全局事，须从高处放眼观。"
+      }
+    }
+  ]
+}

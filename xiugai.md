@@ -36,22 +36,22 @@
 | # | 事项 | 出处 | 备注 |
 |---|---|---|---|
 | A1 | 数据导出流水线：写 `scripts/export-mingyu-data.mjs`，改写 mingyu 生成脚本 → `assets/data/<术式>/` | 规则 1 | 推荐先做，纯查表零精度风险，用来打通整条链路 |
-| A2 | 三山国王灵签数据导出 | 规则 1 | **前置**：先确认 `ssgw-data/signs-full.ts`(1475 行) 与 `signs-01/02/03.ts` 哪个是权威源 |
-| A3 | 补塔罗端到端 golden 向量（同种子抽牌序列可复现） | 验收 1 | 洗牌 = 77 次 `randomInt`，最易暴露随机层问题 |
-| A4 | 补小六壬端到端 golden 向量 | 验收 1 | |
-| A5 | 塔罗算法挪位：`lib/features/tarot/tarot_divination.dart`(1286 行) → `lib/core/engine/tarot/` | 目录约定 | 该文件约 989 行处的 `TarotKeywords` 硬编码表违反规则 1，应改走 JSON |
+| A2 | 三山国王灵签数据导出 | 规则 1 | ✅ **已完成**：按用户决策使用 mingyu 0.4.0 完整数据；运行时权威入口为 `signs-full.ts + enrichSsgwSign`，已导出 92 签 JSON 并接入数据、算法、UI、历史和测试。来源记录见 `docs/SSGW_SOURCE_AUDIT.md` |
+| A3 | 补塔罗端到端 golden 向量（同种子抽牌序列可复现） | 验收 1 | ✅ **已完成**：由 mingyu 0.4.0 黑盒导出单牌、三牌和凯尔特 3 组固定向量，逐字段校验牌号、牌名、位置、正逆位及随机版本 |
+| A4 | 补小六壬端到端 golden 向量 | 验收 1 | ✅ **已完成**：`test_vectors/xiaoliuren/v1.json` + Flutter 向量测试，并有 0.2.3 / 0.4.0 / Dart 三方审计脚本 |
+| A5 | 塔罗算法挪位：`lib/features/tarot/tarot_divination.dart` → `lib/core/engine/tarot/` | 目录约定 | ✅ **已完成**：算法文件及全部引用已迁入 `core/engine/tarot`；78 张牌关键词由导出脚本从 mingyu `tarot.ts#getCardKeywords` 同步进 JSON，Dart 不再保留硬编码表 |
 | A6 | 处理 `lib/core/models/` 不存在的问题 | 目录约定 | ✅ **第 3 轮已解决**：目录已建，含 `algorithm_metadata` / `answer_preference` / `case_profile` |
-| A7 | 随机层加 `algorithmVersion` 常量，并随历史记录持久化 | 潜在问题 1 | ✅ **第 3 轮已解决**：版本信息提升到 `DivinationHistoryRecord` 顶层（`algorithmId` / `algorithmVersion` / `schemaVersion`）。**注意**：这只是「能识别旧数据」，不等于旧数据可 replay——随机层仍缺 `randomAlgorithmVersion`，见新增 A17 |
+| A7 | 随机层加 `algorithmVersion` 常量，并随历史记录持久化 | 潜在问题 1 | ✅ **此前已完成**：`random.dart` 已有 `randomAlgorithmId` / `randomAlgorithmVersion = 2`，`RandomTrace` 带版本且 `fromJson` 把旧记录归为 v1；本轮再把**术式**版本提升到 `DivinationHistoryRecord` 顶层。两层版本现已齐备 |
 | A8 | 给随机层加 Web 目标验证脚本（`dart compile js` 后跑同一批种子对比） | 潜在问题 2 | `flutter test` 跑原生 VM，**测不出 Web 问题**，这是当前 CI 盲区 |
 | A9 | 验证 `codeUnitAt` 与上游 `charCodeAt` 在代理对字符（emoji）上是否分叉 | 潜在问题 8 | 未验证，尚未构成已知 bug |
-| A10 | 收敛小六壬的硬编码配色，并入 `AppTheme` | 本轮 UI 比对 | 4 个文件共 50 处硬编码色值（`0xFFE9A568` 32 处 + 墨蓝渐变 18 处），自成一套暗色皮肤，**不吃深色/浅色主题切换**。当前 App 内存在两套互斥视觉语言，塔罗↔小六壬切换像换 App |
-| A11 | 补宽屏断点与侧栏/顶栏布局 | 本轮 UI 比对 | 现状无任何 `LayoutBuilder`，全部按手机竖屏写死；Web 版在桌面浏览器会呈窄柱居中。**前置**：需先决定是否复刻 sydf 的 15 视图侧栏结构（见 B6） |
-| A12 | 首页 AI 对话入口（composer + 空态） | 用户提供 sydf 截图 | 见下方「截图比对」。现有首页是功能卡片列表，sydf 首页是**对话优先**：浮动输入框「写下问题，交给梅花易数」+ 工具 chips（梅花易数▾／问题灵感／补充信息）+ 发送键 + 底部署名 |
-| A13 | 今日运势条（移动端首页） | 用户提供 sydf 截图 | `mobile-home-fortune-strip`：太阳图标 + 「今日运势／小吉·今天重心在钱款…」+ 颜色圆点 + 右箭头，点击进今日运势 |
-| A14 | 顶栏：AI 渠道/模型选择 + 添加案例 + 记录 | 用户提供 sydf 截图 | 顶栏左侧是 AI 渠道下拉（`专业人士▾ 内置AI`），右侧「添加案例」「记录」。**依赖 B7**（用户自建 API 层与 LLM 调用尚未开始） |
-| A15 | 品牌标识与主题画风系统 | 用户提供 sydf 截图 | 侧栏顶部与首页 hero 都有圆角 logo 图（`getDivinationThemeLogoUrl()`），且**随主题切换换图**；首页大标题「探索未来 解读术数」下半句是渐变文字。见 B8 |
-| A16 | 「功德箱」入口 | 用户提供 sydf 截图 | `merit-box-button`：胶囊按钮，accent-strong 底 + 白字 + `Heart` 图标，外链 `lk.sydf.cc`。是否保留取决于产品定位（见 B8） |
-| A17 | 随机层加独立的 `randomAlgorithmVersion` 并写入历史记录 | 第 3 轮 | 现有顶层版本是**术式**版本，不是随机层版本。随机层已改过两次输出，只靠术式版本号无法判断带 seed 的历史能否 replay |
+| A10 | 收敛小六壬的硬编码配色，并入 `AppTheme` | 本轮 UI 比对 | ✅ **已完成**：输入、规则选择、计算动画和结果展示已移除金色/墨蓝硬编码，统一使用 `ThemeData` 与 `AppTheme` 语义色，支持浅色/深色主题 |
+| A11 | 补宽屏断点与侧栏/顶栏布局 | 本轮 UI 比对 | ✅ **界面地基已完成**：宽屏固定侧栏、窄屏抽屉、常驻顶栏和 15 入口已经落地；仍需持续补真实设备布局回归 |
+| A12 | 首页 AI 对话入口（composer + 空态） | 用户提供 sydf 截图 | 🟡 **交互壳已完成**：composer、工具 chips、发送键和免责声明已落地；真实会话、模型调用和会话历史未接入 |
+| A13 | 今日运势条（移动端首页） | 用户提供 sydf 截图 | 🟡 **展示壳已完成**：首页已有运势条和入口；真实运势算法与数据未接入 |
+| A14 | 顶栏：AI 渠道/模型选择 + 添加案例 + 记录 | 用户提供 sydf 截图 | 🟡 **导航地基已完成**：案例、记录、回答偏好和渠道文字已落地；真实模型/渠道管理未接入 |
+| A15 | 品牌标识与主题画风系统 | 用户提供 sydf 截图 | 🟡 **默认视觉壳已完成**：品牌 Hero、渐变标题和统一 token 已落地；真实 logo 资产与多画风主题未完成 |
+| A16 | 「功德箱」入口 | 用户提供 sydf 截图 | 🟡 **按钮已完成**：当前回调为空，外链和是否保留仍待产品决定 |
+| A17 | 把随机层版本也提升到 `DivinationHistoryRecord` 顶层 | 第 3 轮复核 | ✅ **核心已完成**：`random.dart` 已有 `randomAlgorithmId` / `randomAlgorithmVersion = 2`，并通过 `RandomTrace` 落进历史 payload。仅剩增强：顶层也存一份，便于不解析 payload 直接查询 |
 | A18 | 案例与历史存储从 SharedPreferences 迁 Drift/Isar | SYDF §12.2 | 现在案例库、历史各占一个 key 且全量 JSON 读写；案例模型已就位，迁库时机成熟 |
 | A19 | 合盘要求「至少两个不同案例」的选择器 | SYDF §5 | 案例模型已就位，但案例页目前只支持单选 |
 

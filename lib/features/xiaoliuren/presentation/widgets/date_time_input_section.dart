@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/rules.dart';
+import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 
 /// 日期时辰输入区域
 class DateTimeInputSection extends StatelessWidget {
@@ -20,23 +21,21 @@ class DateTimeInputSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2636).withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE9A568).withValues(alpha: 0.3),
-          width: 1,
-        ),
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             '请选择占卜时间',
             style: TextStyle(
-              color: Color(0xFFE9A568),
+              color: theme.colorScheme.primary,
               fontSize: 20,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.5,
@@ -47,7 +46,7 @@ class DateTimeInputSection extends StatelessWidget {
           Text(
             '小六壬以时间起课，择一时辰，问一事',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: theme.textTheme.bodySmall?.color,
               fontSize: 14,
             ),
             textAlign: TextAlign.center,
@@ -55,7 +54,7 @@ class DateTimeInputSection extends StatelessWidget {
           const SizedBox(height: 32),
           _buildDateTimePicker(context),
           const SizedBox(height: 24),
-          _buildRuleSelector(),
+          _buildRuleSelector(context),
           const SizedBox(height: 32),
           _buildCalculateButton(context),
         ],
@@ -64,45 +63,57 @@ class DateTimeInputSection extends StatelessWidget {
   }
 
   Widget _buildDateTimePicker(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: () => _showDateTimePicker(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFF0F131C),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFE9A568).withValues(alpha: 0.2),
-          ),
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(color: theme.dividerColor),
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today, color: Color(0xFFE9A568), size: 20),
+            Icon(
+              Icons.calendar_today,
+              color: theme.colorScheme.primary,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                selectedDate == null ? '点击选择日期和时辰' : _formatDateTime(selectedDate!),
+                selectedDate == null
+                    ? '点击选择日期和时辰'
+                    : _formatDateTime(selectedDate!),
                 style: TextStyle(
-                  color: selectedDate == null ? Colors.white.withValues(alpha: 0.4) : Colors.white,
+                  color: selectedDate == null
+                      ? theme.textTheme.labelSmall?.color
+                      : theme.colorScheme.onSurface,
                   fontSize: 16,
                 ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios, color: Colors.white.withValues(alpha: 0.3), size: 16),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: theme.textTheme.labelSmall?.color,
+              size: 16,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRuleSelector() {
+  Widget _buildRuleSelector(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '起课规则',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.8),
+            color: theme.textTheme.bodyMedium?.color,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -110,26 +121,48 @@ class DateTimeInputSection extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildRuleOption(XiaoliurenRule.common, '通行掌诀', '民间常用')),
+            Expanded(
+              child: _buildRuleOption(
+                context,
+                XiaoliurenRule.common,
+                '通行掌诀',
+                '民间常用',
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildRuleOption(XiaoliurenRule.duoneng, '多能鄙事', '古法传承')),
+            Expanded(
+              child: _buildRuleOption(
+                context,
+                XiaoliurenRule.duoneng,
+                '多能鄙事',
+                '古法传承',
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildRuleOption(XiaoliurenRule rule, String title, String subtitle) {
+  Widget _buildRuleOption(
+    BuildContext context,
+    XiaoliurenRule rule,
+    String title,
+    String subtitle,
+  ) {
     final isSelected = selectedRule == rule;
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: () => onRuleChanged(rule),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE9A568).withValues(alpha: 0.15) : const Color(0xFF0F131C),
-          borderRadius: BorderRadius.circular(12),
+          color: isSelected
+              ? AppTheme.accentSoft(context)
+              : theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           border: Border.all(
-            color: isSelected ? const Color(0xFFE9A568) : const Color(0xFFE9A568).withValues(alpha: 0.2),
+            color: isSelected ? theme.colorScheme.primary : theme.dividerColor,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -138,7 +171,9 @@ class DateTimeInputSection extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                color: isSelected ? const Color(0xFFE9A568) : Colors.white,
+                color: isSelected
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
@@ -147,7 +182,7 @@ class DateTimeInputSection extends StatelessWidget {
             Text(
               subtitle,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: theme.textTheme.labelSmall?.color,
                 fontSize: 12,
               ),
             ),
@@ -159,19 +194,18 @@ class DateTimeInputSection extends StatelessWidget {
 
   Widget _buildCalculateButton(BuildContext context) {
     final isEnabled = selectedDate != null;
+    final theme = Theme.of(context);
     return ElevatedButton(
       onPressed: isEnabled ? onCalculate : null,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFE9A568),
-        disabledBackgroundColor: const Color(0xFF1E2636),
-        foregroundColor: const Color(0xFF0A0D12),
-        disabledForegroundColor: Colors.white.withValues(alpha: 0.3),
+        backgroundColor: theme.colorScheme.secondary,
+        disabledBackgroundColor: theme.disabledColor.withValues(alpha: 0.12),
+        foregroundColor: theme.colorScheme.onPrimary,
+        disabledForegroundColor: theme.disabledColor,
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         elevation: isEnabled ? 8 : 0,
-        shadowColor: const Color(0xFFE9A568).withValues(alpha: 0.5),
+        shadowColor: AppTheme.themeShadow(context),
       ),
       child: const Text(
         '开始占卜',
@@ -213,17 +247,7 @@ class DateTimeInputSection extends StatelessWidget {
       firstDate: DateTime(1900),
       lastDate: DateTime(2100),
       builder: (context, child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFFE9A568),
-              onPrimary: Color(0xFF0A0D12),
-              surface: Color(0xFF1E2636),
-              onSurface: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
+        return Theme(data: Theme.of(context), child: child!);
       },
     );
 
@@ -232,28 +256,14 @@ class DateTimeInputSection extends StatelessWidget {
         context: context,
         initialTime: TimeOfDay.fromDateTime(selectedDate ?? now),
         builder: (context, child) {
-          return Theme(
-            data: ThemeData.dark().copyWith(
-              colorScheme: const ColorScheme.dark(
-                primary: Color(0xFFE9A568),
-                onPrimary: Color(0xFF0A0D12),
-                surface: Color(0xFF1E2636),
-                onSurface: Colors.white,
-              ),
-            ),
-            child: child!,
-          );
+          return Theme(data: Theme.of(context), child: child!);
         },
       );
 
       if (time != null) {
-        onDateChanged(DateTime(
-          date.year,
-          date.month,
-          date.day,
-          time.hour,
-          time.minute,
-        ));
+        onDateChanged(
+          DateTime(date.year, date.month, date.day, time.hour, time.minute),
+        );
       }
     }
   }

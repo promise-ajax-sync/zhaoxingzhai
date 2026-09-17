@@ -4,15 +4,12 @@ library;
 import 'package:flutter/material.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 import 'package:zhaoxingzhai/core/widgets/app_widgets.dart';
-import 'package:zhaoxingzhai/features/tarot/tarot_divination.dart';
+import 'package:zhaoxingzhai/core/engine/tarot/tarot_divination.dart';
 
 class TarotResultDisplay extends StatelessWidget {
   final TarotDrawResult result;
 
-  const TarotResultDisplay({
-    super.key,
-    required this.result,
-  });
+  const TarotResultDisplay({super.key, required this.result});
 
   @override
   Widget build(BuildContext context) {
@@ -50,14 +47,14 @@ class TarotResultDisplay extends StatelessWidget {
                   vertical: AppTheme.space2,
                 ),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.primary
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusRound),
                 ),
                 child: Text(
                   '${result.cards.length}张',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  style: Theme.of(context).textTheme.labelMedium
+                      ?.copyWith(color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             ],
@@ -73,10 +70,7 @@ class TarotResultDisplay extends StatelessWidget {
           final card = entry.value;
           return Padding(
             padding: const EdgeInsets.only(bottom: AppTheme.space3),
-            child: _TarotCardItem(
-              card: card,
-              index: index,
-            ),
+            child: _TarotCardItem(card: card, index: index),
           );
         }),
 
@@ -94,7 +88,8 @@ class TarotResultDisplay extends StatelessWidget {
                 icon: Icons.check_circle_outline,
                 title: '牌阵状态',
                 content: result.evidenceAnalysis.spreadCoverageFact.status,
-                status: result.evidenceAnalysis.spreadCoverageFact.status == '完整'
+                status:
+                    result.evidenceAnalysis.spreadCoverageFact.status == '完整'
                     ? AnalysisStatus.success
                     : AnalysisStatus.warning,
               ),
@@ -117,7 +112,8 @@ class TarotResultDisplay extends StatelessWidget {
                   context,
                   icon: Icons.warning_amber,
                   title: '逆位约束',
-                  content: result.evidenceAnalysis.counterSummaryFact.promptText,
+                  content:
+                      result.evidenceAnalysis.counterSummaryFact.promptText,
                   status: AnalysisStatus.caution,
                 ),
               ],
@@ -146,23 +142,13 @@ class TarotResultDisplay extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: _getStatusColor(context, status),
-            ),
+            Icon(icon, size: 20, color: _getStatusColor(context, status)),
             const SizedBox(width: AppTheme.space2),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
+            Text(title, style: Theme.of(context).textTheme.labelLarge),
           ],
         ),
         const SizedBox(height: AppTheme.space2),
-        Text(
-          content,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text(content, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
@@ -179,34 +165,30 @@ class TarotResultDisplay extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: AppTheme.space2),
-            Text(
-              '方法论',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
+            Text('方法论', style: Theme.of(context).textTheme.labelLarge),
           ],
         ),
         const SizedBox(height: AppTheme.space2),
-        ...methodology.map((method) => Padding(
-          padding: const EdgeInsets.only(
-            left: AppTheme.space5,
-            top: AppTheme.space2,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '• ',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              Expanded(
-                child: Text(
-                  method,
-                  style: Theme.of(context).textTheme.bodySmall,
+        ...methodology.map(
+          (method) => Padding(
+            padding: const EdgeInsets.only(
+              left: AppTheme.space5,
+              top: AppTheme.space2,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('• ', style: Theme.of(context).textTheme.bodySmall),
+                Expanded(
+                  child: Text(
+                    method,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        )),
+        ),
       ],
     );
   }
@@ -230,21 +212,13 @@ class TarotResultDisplay extends StatelessWidget {
   }
 }
 
-enum AnalysisStatus {
-  success,
-  caution,
-  warning,
-  neutral,
-}
+enum AnalysisStatus { success, caution, warning, neutral }
 
 class _TarotCardItem extends StatelessWidget {
   final TarotCardEvidence card;
   final int index;
 
-  const _TarotCardItem({
-    required this.card,
-    required this.index,
-  });
+  const _TarotCardItem({required this.card, required this.index});
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +236,8 @@ class _TarotCardItem extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.primary
+                      .withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -404,10 +379,7 @@ class _TarotCardItem extends StatelessWidget {
               color: Theme.of(context).textTheme.bodySmall?.color,
             ),
             const SizedBox(width: AppTheme.space1),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
+            Text(label, style: Theme.of(context).textTheme.labelSmall),
           ],
         ),
         const SizedBox(height: AppTheme.space1),
