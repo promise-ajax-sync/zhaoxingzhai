@@ -21,7 +21,8 @@
 | shared/random | 已迁移 | 支持 system、seed、custom、replay；继续对照上游随机向量测试 |
 | 小六壬 | 基础迁移完成 | 两种规则、东八区口径、干支、meta、evidence、UI 与兼容性测试已接入 |
 | 塔罗 | 基础迁移完成 | 78 张牌、18 种牌阵、seed/replay、手动录牌引擎、证据分析、UI 与测试已接入 |
-| 历史记录 | 基础能力完成 | 小六壬与塔罗自动保存；Android/Web 本地持久化、去重、删除和清空已接入 |
+| 案例与快照 | 基础能力完成 | 案例库 CRUD、全局案例选择、不可变快照、算法版本落库；存储仍为 SharedPreferences，待随历史一起迁数据库 |
+| 历史记录 | 基础能力完成 | 小六壬与塔罗自动保存并携带案例快照；顶层 algorithmId/algorithmVersion/schemaVersion 可查询；Android/Web 本地持久化、去重、删除和清空已接入 |
 | 历法基础 | 迁移中 | IANA 历史时区和 DST 已使用 timezone 数据库；真太阳时与中国夏令时仍需补齐上游测试 |
 | 其他术式 | 未开始 | 按蓍草、灵签、梅花、六爻，再到复杂排盘的顺序推进 |
 

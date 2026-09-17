@@ -5,6 +5,7 @@
 library;
 
 import 'package:zhaoxingzhai/core/data/tarot_data.dart' as tarot_loader;
+import 'package:zhaoxingzhai/core/models/algorithm_metadata.dart';
 import 'package:zhaoxingzhai/core/shared/random.dart';
 
 // ============================================
@@ -342,6 +343,7 @@ class TarotEvidenceAnalysis {
 
 /// 塔罗占卜数据（完整结果）
 class TarotDrawResult {
+  final AlgorithmDescriptor algorithm;
   final String spreadType;
   final String spreadName;
   final List<TarotCardEvidence> cards;
@@ -350,6 +352,7 @@ class TarotDrawResult {
   final RandomTrace? randomTrace;
 
   const TarotDrawResult({
+    this.algorithm = AlgorithmCatalog.tarot,
     required this.spreadType,
     required this.spreadName,
     required this.cards,

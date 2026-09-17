@@ -1,27 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zhaoxingzhai/app/app_sidebar.dart';
 import 'package:zhaoxingzhai/core/data/tarot_data.dart';
+import 'package:zhaoxingzhai/features/cases/presentation/cases_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
 import 'package:zhaoxingzhai/features/xiaoliuren/presentation/xiaoliuren_page.dart';
 import 'package:zhaoxingzhai/main.dart';
+
+/// 宽于 [AppTheme.sidebarBreakpoint]，侧栏常驻。
+const _wideSize = Size(1280, 900);
+
+/// 窄于断点，侧栏收进抽屉。
+const _narrowSize = Size(800, 1200);
+
+Future<void> _pumpApp(WidgetTester tester, Size size) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(const MyApp());
+  await tester.pumpAndSettle();
+}
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('首页展示已接入功能并可以进入小六壬', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
-    await tester.pumpAndSettle();
+  testWidgets('首页展示今日运势与对话输入区', (WidgetTester tester) async {
+    await _pumpApp(tester, _wideSize);
 
     expect(find.byType(HomePage), findsOneWidget);
-    expect(find.text('东方术数与占卜工具'), findsOneWidget);
-    expect(find.text('小六壬时间起课'), findsOneWidget);
-    expect(find.text('塔罗占卜'), findsOneWidget);
+    // 「今日运势」同时出现在侧栏入口与首页运势条上。
+    expect(find.text('今日运势'), findsNWidgets(2));
+    expect(find.text('探索未来'), findsOneWidget);
+    expect(find.text('解读术数'), findsOneWidget);
+    expect(find.text('功德箱'), findsOneWidget);
+    expect(find.textContaining('写下问题，交给'), findsOneWidget);
+  });
 
-    await tester.tap(find.text('小六壬').last);
+  testWidgets('宽屏下侧栏常驻并可进入小六壬', (WidgetTester tester) async {
+    await _pumpApp(tester, _wideSize);
+
+    expect(find.byType(AppSidebar), findsOneWidget);
+    // 宽屏侧栏常驻，不再显示抽屉开关。
+    expect(find.byTooltip('打开导航'), findsNothing);
+
+    await tester.tap(find.text('小六壬'));
     await tester.pumpAndSettle();
 
     expect(find.byType(XiaoliurenPage), findsOneWidget);
@@ -33,11 +59,29 @@ void main() {
     expect(find.text('开始占卜'), findsOneWidget);
   });
 
-  testWidgets('未选时间时占卜按钮为禁用态，不进入计算态', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+  testWidgets('窄屏下侧栏收入抽屉并可切换视图', (WidgetTester tester) async {
+    await _pumpApp(tester, _narrowSize);
+
+    // 抽屉未展开时侧栏不在树上。
+    expect(find.byType(AppSidebar), findsNothing);
+
+    await tester.tap(find.byTooltip('打开导航'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('小六壬').last);
+    expect(find.byType(AppSidebar), findsOneWidget);
+
+    await tester.tap(find.text('小六壬'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(XiaoliurenPage), findsOneWidget);
+    // 选中后抽屉自动收起。
+    expect(find.byType(AppSidebar), findsNothing);
+  });
+
+  testWidgets('未选时间时占卜按钮为禁用态，不进入计算态', (WidgetTester tester) async {
+    await _pumpApp(tester, _wideSize);
+
+    await tester.tap(find.text('小六壬'));
     await tester.pumpAndSettle();
 
     final button = tester.widget<ElevatedButton>(
@@ -51,11 +95,10 @@ void main() {
     expect(find.text('请先选择日期和时辰'), findsNothing);
   });
 
-  testWidgets('底部导航可以进入塔罗并加载完整牌阵', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
-    await tester.pumpAndSettle();
+  testWidgets('侧栏可以进入西方占卜并加载完整牌阵', (WidgetTester tester) async {
+    await _pumpApp(tester, _wideSize);
 
-    await tester.tap(find.text('塔罗').last);
+    await tester.tap(find.text('西方占卜'));
     await tester.pumpAndSettle();
 
     expect(find.byType(TarotPage), findsOneWidget);
@@ -66,10 +109,9 @@ void main() {
   });
 
   testWidgets('塔罗支持切换到手动录牌并校验完整输入', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
-    await tester.pumpAndSettle();
+    await _pumpApp(tester, _wideSize);
 
-    await tester.tap(find.text('塔罗').last);
+    await tester.tap(find.text('西方占卜'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('手动录牌'));
     await tester.pumpAndSettle();
@@ -100,12 +142,45 @@ void main() {
     expect(find.text('正位'), findsOneWidget);
     expect(find.text('牌阵状态'), findsOneWidget);
 
-    await tester.tap(find.text('历史').last);
+    // 案例页与历史是两个独立入口：案例页只管理占卜主体，不展示结果。
+    await tester.tap(find.text('案例'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CasesPage), findsOneWidget);
+    expect(find.text('还没有案例'), findsOneWidget);
+
+    // 历史记录作为独立抽屉打开。
+    await tester.tap(find.byTooltip('记录'));
     await tester.pumpAndSettle();
 
     expect(find.text('历史记录'), findsWidgets);
-    expect(find.text('单牌指引'), findsOneWidget);
-    expect(find.textContaining(firstCard.name), findsOneWidget);
+    expect(find.textContaining(firstCard.name), findsWidgets);
+  });
+
+  testWidgets('可以新建案例并自动选中', (WidgetTester tester) async {
+    await _pumpApp(tester, _wideSize);
+
+    await tester.tap(find.text('案例'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('新建案例'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '测试案例');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    // 案例出现在列表里，并被自动选为当前案例。
+    expect(find.text('测试案例'), findsWidgets);
+    expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
+
+    // 未填名称时不允许保存。
+    await tester.tap(find.text('新建案例'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('请填写案例名称'), findsOneWidget);
   });
 
   testWidgets('塔罗数据加载失败后可以重试', (WidgetTester tester) async {

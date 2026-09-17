@@ -65,54 +65,54 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget build(BuildContext context) {
     final repository = widget.repository;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('历史记录'), centerTitle: true),
-      body: !repository.isLoaded
-          ? const AppLoadingIndicator(message: '读取本地记录...')
-          : AppPageContainer(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AppPageHeading(
-                    title: '历史记录',
-                    subtitle: '仅保存在当前设备，最多保留 100 条',
-                    trailing: repository.records.isEmpty
-                        ? null
-                        : IconButton(
-                            tooltip: '清空历史记录',
-                            onPressed: _confirmClear,
-                            icon: const Icon(Icons.delete_sweep_outlined),
-                          ),
+    // 外壳（AppShell）已提供顶栏与背景，这里只渲染页面内容。
+    if (!repository.isLoaded) {
+      return const AppLoadingIndicator(message: '读取本地记录...');
+    }
+
+    return AppPageContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppPageHeading(
+            title: '历史记录',
+            subtitle: '仅保存在当前设备，最多保留 100 条',
+            trailing: repository.records.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: '清空历史记录',
+                    onPressed: _confirmClear,
+                    icon: const Icon(Icons.delete_sweep_outlined),
                   ),
-                  if (repository.loadError != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: AppTheme.space4),
-                      child: Text(
-                        '部分记录读取失败：${repository.loadError}',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  if (repository.records.isEmpty)
-                    const AppEmptyState(
-                      icon: Icons.history,
-                      title: '还没有占卜记录',
-                      subtitle: '完成一次小六壬或塔罗占卜后，结果会自动保存到这里。',
-                    )
-                  else
-                    ...repository.records.map(
-                      (record) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppTheme.space3),
-                        child: _HistoryRecordCard(
-                          record: record,
-                          onDelete: () => repository.delete(record.id),
-                        ),
-                      ),
-                    ),
-                ],
+          ),
+          if (repository.loadError != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.space4),
+              child: Text(
+                '部分记录读取失败：${repository.loadError}',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
               ),
             ),
+          if (repository.records.isEmpty)
+            const AppEmptyState(
+              icon: Icons.history,
+              title: '还没有占卜记录',
+              subtitle: '完成一次小六壬或塔罗占卜后，结果会自动保存到这里。',
+            )
+          else
+            ...repository.records.map(
+              (record) => Padding(
+                padding: const EdgeInsets.only(bottom: AppTheme.space3),
+                child: _HistoryRecordCard(
+                  record: record,
+                  onDelete: () => repository.delete(record.id),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -150,6 +150,29 @@ class _HistoryRecordCard extends StatelessWidget {
                 ),
                 child: Text(record.typeLabel),
               ),
+              if (record.caseSnapshot != null) ...[
+                const SizedBox(width: AppTheme.space2),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.space2,
+                    vertical: AppTheme.space1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusRound),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.person_outline, size: 14),
+                      const SizedBox(width: AppTheme.space1),
+                      Text(record.caseSnapshot!.displayName),
+                    ],
+                  ),
+                ),
+              ],
               const Spacer(),
               IconButton(
                 tooltip: '删除这条记录',
@@ -168,7 +191,7 @@ class _HistoryRecordCard extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.space3),
           Text(
-            _formatTime(record.createdAt),
+            '${_formatTime(record.createdAt)} · ${record.algorithmLabel}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

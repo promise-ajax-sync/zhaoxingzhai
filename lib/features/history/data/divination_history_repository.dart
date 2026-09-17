@@ -3,8 +3,18 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
+import 'package:zhaoxingzhai/core/models/case_profile.dart';
+import 'package:zhaoxingzhai/core/shared/result.dart';
 import 'package:zhaoxingzhai/features/tarot/tarot_divination.dart';
 
+/// 一条占卜历史记录。
+///
+/// [caseSnapshot] 保存的是计算当时的案例副本，不是当前案例的引用：
+/// 修改或删除案例不得改变已存在的历史。
+///
+/// [algorithmId] / [algorithmVersion] / [schemaVersion] 提升到顶层，
+/// 是为了让旧数据可被查询、比对和迁移；它们同时仍保留在 [payload] 中，
+/// 以便按原始结果结构复查。
 class DivinationHistoryRecord {
   final String id;
   final String type;
@@ -12,6 +22,12 @@ class DivinationHistoryRecord {
   final String summary;
   final DateTime createdAt;
   final Map<String, dynamic> payload;
+  final String algorithmId;
+  final int algorithmVersion;
+  final String schemaVersion;
+
+  /// 计算当时的案例副本；无主体的一次性占卜为 `null`。
+  final CaseSnapshot? caseSnapshot;
 
   const DivinationHistoryRecord({
     required this.id,
@@ -20,6 +36,10 @@ class DivinationHistoryRecord {
     required this.summary,
     required this.createdAt,
     required this.payload,
+    required this.algorithmId,
+    required this.algorithmVersion,
+    required this.schemaVersion,
+    this.caseSnapshot,
   });
 
   String get typeLabel => switch (type) {
@@ -28,6 +48,9 @@ class DivinationHistoryRecord {
     _ => type,
   };
 
+  /// 算法身份，用于判断旧结果能否被当前实现 replay。
+  String get algorithmLabel => '$algorithmId v$algorithmVersion';
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': type,
@@ -35,22 +58,60 @@ class DivinationHistoryRecord {
     'summary': summary,
     'createdAt': createdAt.toUtc().toIso8601String(),
     'payload': payload,
+    'algorithmId': algorithmId,
+    'algorithmVersion': algorithmVersion,
+    'schemaVersion': schemaVersion,
+    if (caseSnapshot != null) 'caseSnapshot': caseSnapshot!.toJson(),
   };
 
   factory DivinationHistoryRecord.fromJson(Map<String, dynamic> json) {
+    final payload = json['payload'] is Map
+        ? Map<String, dynamic>.from(json['payload'] as Map)
+        : <String, dynamic>{};
+
+    // 早期记录没有顶层版本字段，回落到 payload 内的结果元数据；
+    // 两者都没有时按 v0 处理，明确标记为「未知版本」而不是假装是 v1。
+    final meta = payload['meta'];
+    final metaMap = meta is Map
+        ? Map<String, dynamic>.from(meta)
+        : const <String, dynamic>{};
+    final algorithm = payload['algorithm'];
+    final algorithmMap = algorithm is Map
+        ? Map<String, dynamic>.from(algorithm)
+        : const <String, dynamic>{};
+    final fallback = <String, dynamic>{
+      ...metaMap,
+      ...algorithmMap,
+      ...payload,
+    };
+
+    final snapshotRaw = json['caseSnapshot'];
+    final snapshot = snapshotRaw is Map
+        ? CaseSnapshot.fromJson(Map<String, dynamic>.from(snapshotRaw))
+        : null;
+
     return DivinationHistoryRecord(
       id: json['id'] as String,
       type: json['type'] as String,
       title: json['title'] as String,
       summary: json['summary'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
-      payload: Map<String, dynamic>.from(json['payload'] as Map),
+      payload: payload,
+      algorithmId:
+          json['algorithmId'] as String? ?? fallback['algorithm'] as String? ?? 'unknown',
+      algorithmVersion: (json['algorithmVersion'] as num?)?.toInt() ??
+          (fallback['algorithmVersion'] as num?)?.toInt() ??
+          0,
+      schemaVersion: json['schemaVersion'] as String? ??
+          fallback['schemaVersion'] as String? ??
+          'unknown',
+      caseSnapshot: snapshot,
     );
   }
 }
 
 class DivinationHistoryRepository extends ChangeNotifier {
-  static const _storageKey = 'zhaoxingzhai.divination_history.v1';
+  static const String storageKey = 'zhaoxingzhai.divination_history.v1';
   static const _maxRecords = 100;
 
   final Future<SharedPreferences> Function() _preferencesFactory;
@@ -73,7 +134,7 @@ class DivinationHistoryRepository extends ChangeNotifier {
   Future<void> _load() async {
     try {
       final preferences = await _preferencesFactory();
-      final raw = preferences.getString(_storageKey);
+      final raw = preferences.getString(storageKey);
       _records.clear();
       if (raw != null && raw.isNotEmpty) {
         final decoded = jsonDecode(raw);
@@ -102,7 +163,10 @@ class DivinationHistoryRepository extends ChangeNotifier {
     }
   }
 
-  Future<void> addTarot(TarotDrawResult result) async {
+  Future<void> addTarot(
+    TarotDrawResult result, {
+    CaseSnapshot? caseSnapshot,
+  }) async {
     final previewCards = result.cards
         .take(3)
         .map((card) => '${card.position}：${card.name}${card.orientation}');
@@ -119,7 +183,12 @@ class DivinationHistoryRepository extends ChangeNotifier {
         title: result.spreadName,
         summary: summary,
         createdAt: result.timestamp,
+        algorithmId: result.algorithm.id,
+        algorithmVersion: result.algorithm.version,
+        schemaVersion: mingyuSchemaVersion,
+        caseSnapshot: caseSnapshot,
         payload: {
+          'algorithm': result.algorithm.toJson(),
           'spreadType': result.spreadType,
           'spreadName': result.spreadName,
           'cards': result.cards
@@ -143,7 +212,10 @@ class DivinationHistoryRepository extends ChangeNotifier {
     );
   }
 
-  Future<void> addXiaoliuren(XiaoliurenData result) async {
+  Future<void> addXiaoliuren(
+    XiaoliurenData result, {
+    CaseSnapshot? caseSnapshot,
+  }) async {
     await add(
       DivinationHistoryRecord(
         id: result.meta.resultId,
@@ -157,6 +229,10 @@ class DivinationHistoryRepository extends ChangeNotifier {
             '时宫 ${result.sequence['hour']!.name}',
         createdAt: result.meta.calculatedAt.toLocal(),
         payload: result.toJson(),
+        algorithmId: result.meta.algorithm,
+        algorithmVersion: result.meta.algorithmVersion,
+        schemaVersion: result.meta.schemaVersion,
+        caseSnapshot: caseSnapshot,
       ),
     );
   }
@@ -191,7 +267,7 @@ class DivinationHistoryRepository extends ChangeNotifier {
     final encoded = jsonEncode(
       _records.map((record) => record.toJson()).toList(),
     );
-    final saved = await preferences.setString(_storageKey, encoded);
+    final saved = await preferences.setString(storageKey, encoded);
     if (!saved) {
       throw StateError('本地历史记录写入失败');
     }

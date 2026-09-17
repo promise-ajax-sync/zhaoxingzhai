@@ -4,6 +4,22 @@ import 'package:zhaoxingzhai/core/shared/result.dart';
 
 void main() {
   group('随机数系统测试', () {
+    test('随机轨迹应保存算法身份和版本，并兼容旧记录', () {
+      final trace = createRandomContext(seed: '版本测试').getTrace();
+      final json = trace.toJson();
+
+      expect(json['algorithmId'], randomAlgorithmId);
+      expect(json['algorithmVersion'], randomAlgorithmVersion);
+
+      final legacy = RandomTrace.fromJson({
+        'mode': 'seeded',
+        'seed': '旧记录',
+        'samples': [0.25],
+      });
+      expect(legacy.algorithmVersion, 1);
+      expect(legacy.samples, [0.25]);
+    });
+
     test('系统随机模式应生成 [0, 1) 范围内的数', () {
       final ctx = createRandomContext();
       for (int i = 0; i < 100; i++) {

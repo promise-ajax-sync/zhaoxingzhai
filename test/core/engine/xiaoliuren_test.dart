@@ -158,6 +158,9 @@ void main() {
       final json = data.toJson();
       expect(json['meta']['engineVersion'], equals('0.4.0'));
       expect(json['meta']['algorithm'], equals('xiaoliuren'));
+      expect(json['meta']['algorithmVersion'], equals(1));
+      expect(json['meta']['ruleset'], equals('common-six-palace'));
+      expect(json['meta']['implementation'], equals('zhaoxingzhai-dart'));
       expect(json['meta']['resultId'], startsWith('xiaoliuren:'));
       expect(json['rule'], isNotNull);
       expect(json['ruleLabel'], isNotNull);

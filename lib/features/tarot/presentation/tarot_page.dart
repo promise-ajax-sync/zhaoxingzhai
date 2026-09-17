@@ -133,18 +133,12 @@ class _TarotPageState extends State<TarotPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('塔罗占卜'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-      ),
-      body: _isLoading
-          ? const AppLoadingIndicator(message: '加载塔罗牌...')
-          : _loadError != null
-          ? _buildLoadError(context)
-          : AppPageContainer(
+    // 外壳（AppShell）已提供顶栏与背景，这里只渲染页面内容。
+    return _isLoading
+        ? const AppLoadingIndicator(message: '加载塔罗牌...')
+        : _loadError != null
+        ? _buildLoadError(context)
+        : AppPageContainer(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -237,8 +231,7 @@ class _TarotPageState extends State<TarotPage> {
                   ],
                 ],
               ),
-            ),
-    );
+            );
   }
 
   Widget _buildLoadError(BuildContext context) {

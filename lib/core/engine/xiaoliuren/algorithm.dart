@@ -4,6 +4,7 @@
 library;
 
 import 'package:lunar/lunar.dart';
+import 'package:zhaoxingzhai/core/models/algorithm_metadata.dart';
 
 import '../../calendar/date_utils.dart';
 import '../../shared/result.dart';
@@ -461,7 +462,9 @@ XiaoliurenData generateXiaoliuren({
     sequence: sequence,
   );
   final meta = createResultMeta(
-    algorithm: 'xiaoliuren',
+    descriptor: ruleDetail.id == XiaoliurenRule.duoneng
+        ? AlgorithmCatalog.xiaoliurenDuoneng
+        : AlgorithmCatalog.xiaoliurenCommon,
     input: {
       'method': actualMethod.name,
       'rule': ruleDetail.id.name,

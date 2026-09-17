@@ -11,12 +11,17 @@
 /// 2. 可追溯：记录所有随机样本
 /// 3. 可验证：replay 模式精确复现
 ///
-/// 注意：Dart 的 int 是 64 位，因而 32 位截断乘法直接写作
-/// `(a * b) & 0xFFFFFFFF` 即可，无需 JS 那种拆高低 16 位的 Math.imul 模拟。
+/// 注意：原生 Dart 可精确承载这里的乘积，但 Dart Web 使用 JS Number，
+/// 两个 32 位数直接相乘会超过 53 位安全整数范围。因此 `_imul` 必须采用
+/// 16 位半字分解，保证固定种子在 Web 与原生平台产生同一序列。
 library;
 
 import 'dart:math' as math;
 import 'result.dart';
+
+/// 随机序列兼容版本。改变哈希、PRNG、取整或拒绝采样规则时必须递增。
+const randomAlgorithmId = 'fnv1a32-mulberry32';
+const randomAlgorithmVersion = 2;
 
 /// 随机源函数类型
 typedef RandomSource = double Function();
@@ -31,22 +36,30 @@ enum RandomMode {
 
 /// 随机轨迹（用于记录和重放）
 class RandomTrace {
+  final String algorithmId;
+  final int algorithmVersion;
   final RandomMode mode;
   final dynamic seed;  // String 或 int
   final List<double> samples;
 
   const RandomTrace({
+    this.algorithmId = randomAlgorithmId,
+    this.algorithmVersion = randomAlgorithmVersion,
     required this.mode,
     this.seed,
     required this.samples,
   });
 
   RandomTrace copyWith({
+    String? algorithmId,
+    int? algorithmVersion,
     RandomMode? mode,
     dynamic seed,
     List<double>? samples,
   }) {
     return RandomTrace(
+      algorithmId: algorithmId ?? this.algorithmId,
+      algorithmVersion: algorithmVersion ?? this.algorithmVersion,
       mode: mode ?? this.mode,
       seed: seed ?? this.seed,
       samples: samples ?? List.from(this.samples),
@@ -54,10 +67,25 @@ class RandomTrace {
   }
 
   Map<String, dynamic> toJson() => {
+        'algorithmId': algorithmId,
+        'algorithmVersion': algorithmVersion,
         'mode': mode.name,
         if (seed != null) 'seed': seed,
         'samples': samples,
       };
+
+  factory RandomTrace.fromJson(Map<String, dynamic> json) {
+    return RandomTrace(
+      // 旧记录没有版本字段，归入版本 1，不能假定为当前算法。
+      algorithmId: json['algorithmId'] as String? ?? randomAlgorithmId,
+      algorithmVersion: json['algorithmVersion'] as int? ?? 1,
+      mode: RandomMode.values.byName(json['mode'] as String),
+      seed: json['seed'],
+      samples: (json['samples'] as List)
+          .map((sample) => (sample as num).toDouble())
+          .toList(growable: false),
+    );
+  }
 }
 
 /// 随机上下文（包含随机源和轨迹记录）
@@ -149,7 +177,7 @@ int _hashSeed(dynamic seed) {
   return hash & 0xFFFFFFFF;
 }
 
-/// 创建种子随机源（PCG 算法）
+/// 创建种子随机源（Mulberry32 变体）
 RandomSource createSeededRandom(dynamic seed) {
   int state = _hashSeed(seed);
   if (state == 0) state = 1;

@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "algorithmId": "xiaoliuren",
+  "algorithmVersion": 1,
+  "vectors": [
+    {
+      "id": "common-new-year-zi",
+      "description": "通行掌诀正月初一早子时起大安",
+      "source": "公开通行掌诀规则，并由当前 mingyu 对照用例复核",
+      "input": {
+        "dateTime": "2025-01-29T00:30:00+08:00",
+        "rule": "common"
+      },
+      "expected": {
+        "lunarMonth": 1,
+        "lunarDay": 1,
+        "hourLabel": "早子时",
+        "monthPalace": "大安",
+        "dayPalace": "大安",
+        "hourPalace": "大安"
+      }
+    },
+    {
+      "id": "duoneng-new-year-zi",
+      "description": "多能鄙事正月初一早子时从留连起",
+      "source": "《多能鄙事》规则，并由当前 mingyu 对照用例复核",
+      "input": {
+        "dateTime": "2025-01-29T00:30:00+08:00",
+        "rule": "duoneng"
+      },
+      "expected": {
+        "lunarMonth": 1,
+        "lunarDay": 1,
+        "hourLabel": "早子时",
+        "monthPalace": "大安",
+        "dayPalace": "留连",
+        "hourPalace": "留连"
+      }
+    },
+    {
+      "id": "common-late-zi-boundary",
+      "description": "晚子时沿用东八区民用日，不提前换日",
+      "source": "当前项目明确采用的民用日零点换日规则",
+      "input": {
+        "dateTime": "2025-01-29T23:30:00+08:00",
+        "rule": "common"
+      },
+      "expected": {
+        "lunarMonth": 1,
+        "lunarDay": 1,
+        "hourLabel": "晚子时",
+        "monthPalace": "大安",
+        "dayPalace": "大安",
+        "hourPalace": "大安"
+      }
+    },
+    {
+      "id": "common-before-late-zi",
+      "description": "22:59 仍按亥时十二计数",
+      "source": "mingyu 小六壬边界测试与公开时辰规则",
+      "input": {
+        "dateTime": "2025-06-29T22:59:00+08:00",
+        "rule": "common"
+      },
+      "expected": {
+        "lunarMonth": 6,
+        "lunarDay": 5,
+        "hourLabel": "亥时",
+        "hourNumber": 12,
+        "monthPalace": "空亡",
+        "dayPalace": "赤口",
+        "hourPalace": "速喜"
+      }
+    },
+    {
+      "id": "common-late-zi-start",
+      "description": "23:00 进入晚子时但农历日尚未更换",
+      "source": "mingyu 小六壬边界测试与民用日零点换日口径",
+      "input": {
+        "dateTime": "2025-06-29T23:00:00+08:00",
+        "rule": "common"
+      },
+      "expected": {
+        "lunarMonth": 6,
+        "lunarDay": 5,
+        "hourLabel": "晚子时",
+        "hourNumber": 1,
+        "monthPalace": "空亡",
+        "dayPalace": "赤口",
+        "hourPalace": "赤口"
+      }
+    },
+    {
+      "id": "common-midnight-day-change",
+      "description": "00:00 按东八区民用日切换农历日",
+      "source": "mingyu 小六壬边界测试与民用日零点换日口径",
+      "input": {
+        "dateTime": "2025-06-30T00:00:00+08:00",
+        "rule": "common"
+      },
+      "expected": {
+        "lunarMonth": 6,
+        "lunarDay": 6,
+        "hourLabel": "早子时",
+        "hourNumber": 1,
+        "monthPalace": "空亡",
+        "dayPalace": "小吉",
+        "hourPalace": "小吉"
+      }
+    },
+    {
+      "id": "common-chou-start",
+      "description": "01:00 进入丑时二计数",
+      "source": "mingyu 小六壬边界测试与公开时辰规则",
+      "input": {
+        "dateTime": "2025-06-30T01:00:00+08:00",
+        "rule": "common"
+      },
+      "expected": {
+        "lunarMonth": 6,
+        "lunarDay": 6,
+        "hourLabel": "丑时",
+        "hourNumber": 2,
+        "monthPalace": "空亡",
+        "dayPalace": "小吉",
+        "hourPalace": "空亡"
+      }
+    },
+    {
+      "id": "common-regular-sixth-month",
+      "description": "普通六月初一采用六月宫位",
+      "source": "mingyu 闰月边界测试",
+      "input": {
+        "dateTime": "2025-06-25T08:00:00+08:00",
+        "rule": "common"
+      },
+      "expected": {
+        "lunarMonth": 6,
+        "lunarDay": 1,
+        "isLeapMonth": false,
+        "hourLabel": "辰时",
+        "hourNumber": 5,
+        "monthPalace": "空亡",
+        "dayPalace": "空亡",
+        "hourPalace": "赤口"
+      }
+    },
+    {
+      "id": "common-leap-sixth-month",
+      "description": "闰六月沿用六月月序",
+      "source": "mingyu 闰月边界测试",
+      "input": {
+        "dateTime": "2025-07-25T08:00:00+08:00",
+        "rule": "common"
+      },
+      "expected": {
+        "lunarMonth": 6,
+        "lunarDay": 1,
+        "isLeapMonth": true,
+        "hourLabel": "辰时",
+        "hourNumber": 5,
+        "monthPalace": "空亡",
+        "dayPalace": "空亡",
+        "hourPalace": "赤口"
+      }
+    },
+    {
+      "id": "duoneng-second-month-example",
+      "description": "多能鄙事二月初一例为速喜",
+      "source": "mingyu 上游测试中的古法二月例",
+      "input": {
+        "dateTime": "2025-02-28T00:30:00+08:00",
+        "rule": "duoneng"
+      },
+      "expected": {
+        "lunarMonth": 2,
+        "lunarDay": 1,
+        "hourLabel": "早子时",
+        "hourNumber": 1,
+        "monthPalace": "留连",
+        "dayPalace": "速喜",
+        "hourPalace": "速喜"
+      }
+    }
+  ]
+}

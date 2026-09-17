@@ -21,6 +21,10 @@ void main() {
       expect(first.randomTrace?.mode, RandomMode.seeded);
       expect(first.randomTrace?.seed, '昭星斋-塔罗');
       expect(first.randomTrace?.samples, isNotEmpty);
+      expect(first.randomTrace?.algorithmId, randomAlgorithmId);
+      expect(first.randomTrace?.algorithmVersion, randomAlgorithmVersion);
+      expect(first.algorithm.id, 'tarot');
+      expect(first.algorithm.version, 1);
     });
 
     test('随机轨迹应能完整 replay', () {

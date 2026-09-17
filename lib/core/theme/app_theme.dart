@@ -4,6 +4,23 @@ library;
 
 import 'package:flutter/material.dart';
 
+/// 黄历吉凶等级。
+///
+/// 对应参考实现的 `--ds-auspice-*` 六档：大吉 / 吉 / 小吉 / 平 / 慎 / 忌。
+/// 黄历、今日运势、每日一卦共用这一套语义色。
+enum AuspiceLevel {
+  excellent('大吉'),
+  good('吉'),
+  smallGood('小吉'),
+  neutral('平'),
+  caution('慎'),
+  avoid('忌');
+
+  const AuspiceLevel(this.label);
+
+  final String label;
+}
+
 class AppTheme {
   // 私有构造函数
   AppTheme._();
@@ -35,6 +52,34 @@ class AppTheme {
   // 功能色
   static const Color _lightDanger = Color(0xFFA65364);
   static const Color _lightSuccess = Color(0xFF55796E);
+
+  // 语义辅助色（--ds-blue / --ds-plum / --ds-sage / --ds-gold）
+  static const Color _lightBlue = Color(0xFF607C96);
+  static const Color _lightBlueSoft = Color(0xFFE5EDF2);
+  static const Color _lightPlum = Color(0xFF956178);
+  static const Color _lightPlumSoft = Color(0xFFF1E5EA);
+  static const Color _lightSage = Color(0xFF637D75);
+  static const Color _lightSageSoft = Color(0xFFE4ECE9);
+  static const Color _lightGold = Color(0xFFA98252);
+
+  // 浮层与布局表面
+  static const Color _lightSurfaceOverlay = Color(0xF5FFFFFF);
+  static const Color _lightSidebar = Color(0xFFECEAF0);
+  static const Color _lightTopbar = Color(0xFFF9F8FA);
+
+  // 吉凶等级（--ds-auspice-*）
+  static const Color _lightExcellent = Color(0xFFB52A27);
+  static const Color _lightGood = Color(0xFF1F7A4D);
+  static const Color _lightSmallGood = Color(0xFF167784);
+  static const Color _lightNeutral = Color(0xFF5F6B7A);
+  static const Color _lightCaution = Color(0xFF9A5B08);
+  static const Color _lightAvoid = Color(0xFF51468A);
+
+  // 品牌渐变（--theme-hero-*）
+  static const Color _lightHeroStart = Color(0xFF67428F);
+  static const Color _lightHeroMiddle = Color(0xFF8B58B1);
+  static const Color _lightHeroEnd = Color(0xFFB778CF);
+  static const Color _lightThemeShadow = Color(0x3D5B4184);
   
   // ============================================
   // 颜色系统 - 深色主题
@@ -59,10 +104,52 @@ class AppTheme {
   static const Color _darkDanger = Color(0xFFD08B9A);
   static const Color _darkSuccess = Color(0xFF8EB9AA);
 
+  static const Color _darkBlue = Color(0xFF91ADC1);
+  static const Color _darkBlueSoft = Color(0xFF293943);
+  static const Color _darkPlum = Color(0xFFC994A9);
+  static const Color _darkPlumSoft = Color(0xFF43303A);
+  static const Color _darkSage = Color(0xFF91B3AA);
+  static const Color _darkSageSoft = Color(0xFF2E403B);
+  static const Color _darkGold = Color(0xFFD1AD76);
+
+  static const Color _darkSurfaceOverlay = Color(0xF726232B);
+  static const Color _darkSidebar = Color(0xFF211F25);
+  static const Color _darkTopbar = Color(0xFF1D1B20);
+
+  static const Color _darkExcellent = Color(0xFFF28B82);
+  static const Color _darkGood = Color(0xFF6ED29E);
+  static const Color _darkSmallGood = Color(0xFF62C8D2);
+  static const Color _darkNeutral = Color(0xFFB7C2CF);
+  static const Color _darkCaution = Color(0xFFF0B552);
+  static const Color _darkAvoid = Color(0xFFB2A4EE);
+
+  static const Color _darkHeroStart = Color(0xFFB99ADE);
+  static const Color _darkHeroMiddle = Color(0xFFC69BE7);
+  static const Color _darkHeroEnd = Color(0xFFDDA9ED);
+  static const Color _darkThemeShadow = Color(0x57000000);
+
+  // ============================================
+  // 布局尺寸
+  // ============================================
+  // 与参考实现的 CSS 变量同名同值：
+  // --ds-topbar-height / --ds-page-content / --ds-sidebar-width
+
+  /// 顶栏高度
+  static const double topbarHeight = 64.0;
+
+  /// 页面内容最大宽度（超出后内容居中留白）
+  static const double pageContent = 1180.0;
+
+  /// 侧栏固定宽度
+  static const double sidebarWidth = 230.0;
+
+  /// 侧栏展开的断点：低于此宽度改为抽屉式导航
+  static const double sidebarBreakpoint = 1024.0;
+
   // ============================================
   // 间距系统
   // ============================================
-  
+
   static const double space1 = 4.0;
   static const double space2 = 8.0;
   static const double space3 = 12.0;
@@ -111,6 +198,60 @@ class AppTheme {
   /// 成功色：正向结论
   static Color success(BuildContext context) =>
       _isDark(context) ? _darkSuccess : _lightSuccess;
+
+  /// 浮层表面：下拉菜单、弹层
+  static Color surfaceOverlay(BuildContext context) =>
+      _isDark(context) ? _darkSurfaceOverlay : _lightSurfaceOverlay;
+
+  /// 侧栏底色
+  static Color sidebar(BuildContext context) =>
+      _isDark(context) ? _darkSidebar : _lightSidebar;
+
+  /// 顶栏底色
+  static Color topbar(BuildContext context) =>
+      _isDark(context) ? _darkTopbar : _lightTopbar;
+
+  /// 品牌渐变三色（首页标题用）
+  static List<Color> heroGradient(BuildContext context) => _isDark(context)
+      ? const [_darkHeroStart, _darkHeroMiddle, _darkHeroEnd]
+      : const [_lightHeroStart, _lightHeroMiddle, _lightHeroEnd];
+
+  /// 品牌投影色：用于「功德箱」这类强调胶囊
+  static Color themeShadow(BuildContext context) =>
+      _isDark(context) ? _darkThemeShadow : _lightThemeShadow;
+
+  /// 语义辅助色：青 / 梅 / 苔 / 金
+  static Color blue(BuildContext context) =>
+      _isDark(context) ? _darkBlue : _lightBlue;
+  static Color plum(BuildContext context) =>
+      _isDark(context) ? _darkPlum : _lightPlum;
+  static Color sage(BuildContext context) =>
+      _isDark(context) ? _darkSage : _lightSage;
+  static Color gold(BuildContext context) =>
+      _isDark(context) ? _darkGold : _lightGold;
+
+  /// 语义辅助色对应的柔和底
+  static Color blueSoft(BuildContext context) =>
+      _isDark(context) ? _darkBlueSoft : _lightBlueSoft;
+  static Color plumSoft(BuildContext context) =>
+      _isDark(context) ? _darkPlumSoft : _lightPlumSoft;
+  static Color sageSoft(BuildContext context) =>
+      _isDark(context) ? _darkSageSoft : _lightSageSoft;
+
+  /// 吉凶等级色：黄历与运势共用一套
+  static Color auspice(BuildContext context, AuspiceLevel level) =>
+      switch (level) {
+        AuspiceLevel.excellent =>
+          _isDark(context) ? _darkExcellent : _lightExcellent,
+        AuspiceLevel.good => _isDark(context) ? _darkGood : _lightGood,
+        AuspiceLevel.smallGood =>
+          _isDark(context) ? _darkSmallGood : _lightSmallGood,
+        AuspiceLevel.neutral =>
+          _isDark(context) ? _darkNeutral : _lightNeutral,
+        AuspiceLevel.caution =>
+          _isDark(context) ? _darkCaution : _lightCaution,
+        AuspiceLevel.avoid => _isDark(context) ? _darkAvoid : _lightAvoid,
+      };
 
   static bool _isDark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;

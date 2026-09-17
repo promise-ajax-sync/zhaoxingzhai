@@ -10,18 +10,19 @@
 
 ---
 
-## 状态快照（最近更新：第 2 轮）
+## 状态快照（最近更新：第 3 轮）
 
 | 项 | 状态 |
 |---|---|
-| git | 本地仓库，无 remote |
-| 测试 | 68 个全通过（`flutter test`） |
+| git | 本地仓库，无 remote；**第 3 轮改动全部未提交**（见下方记录） |
+| 测试 | 103 个全通过（`flutter test`） |
 | 静态分析 | `flutter analyze` 零问题 |
-| Web 构建 | `flutter build web --release` 通过 |
+| Web 构建 | `flutter build web --release` 通过（第 2 轮验证，第 3 轮改动后待复核） |
 | 已移植术式 | 小六壬、塔罗（基础） |
+| 产品地基 | 案例库、案例快照、算法版本落库、全局案例选择（本轮新增） |
 | 数据资产 | `assets/data/{tarot,ganzhi,trigrams,hexagrams}.json` |
 | 上游 pin | mingyu `0.4.0` / `878958f`；sydf `ffd2961`（依赖 `mingyu-core 0.2.3`） |
-| 已提交 | `4ba8b7b` 第 2 轮修复；`6ace8b1` 建本文档；`1626772` 第 1 轮修复；`fb4019a` 初版快照 |
+| 已提交 | `73f077b` 文档（IA 修正）；`4ba8b7b` 第 2 轮修复；`6ace8b1` 建本文档；`1626772` 第 1 轮修复；`fb4019a` 初版快照 |
 
 ---
 
@@ -39,8 +40,8 @@
 | A3 | 补塔罗端到端 golden 向量（同种子抽牌序列可复现） | 验收 1 | 洗牌 = 77 次 `randomInt`，最易暴露随机层问题 |
 | A4 | 补小六壬端到端 golden 向量 | 验收 1 | |
 | A5 | 塔罗算法挪位：`lib/features/tarot/tarot_divination.dart`(1286 行) → `lib/core/engine/tarot/` | 目录约定 | 该文件约 989 行处的 `TarotKeywords` 硬编码表违反规则 1，应改走 JSON |
-| A6 | 处理 `lib/core/models/` 不存在的问题 | 目录约定 | 要么建目录，要么从约定文档里删掉 |
-| A7 | 随机层加 `algorithmVersion` 常量，并随历史记录持久化 | 潜在问题 1 | 见下方说明，越早加越省事 |
+| A6 | 处理 `lib/core/models/` 不存在的问题 | 目录约定 | ✅ **第 3 轮已解决**：目录已建，含 `algorithm_metadata` / `answer_preference` / `case_profile` |
+| A7 | 随机层加 `algorithmVersion` 常量，并随历史记录持久化 | 潜在问题 1 | ✅ **第 3 轮已解决**：版本信息提升到 `DivinationHistoryRecord` 顶层（`algorithmId` / `algorithmVersion` / `schemaVersion`）。**注意**：这只是「能识别旧数据」，不等于旧数据可 replay——随机层仍缺 `randomAlgorithmVersion`，见新增 A17 |
 | A8 | 给随机层加 Web 目标验证脚本（`dart compile js` 后跑同一批种子对比） | 潜在问题 2 | `flutter test` 跑原生 VM，**测不出 Web 问题**，这是当前 CI 盲区 |
 | A9 | 验证 `codeUnitAt` 与上游 `charCodeAt` 在代理对字符（emoji）上是否分叉 | 潜在问题 8 | 未验证，尚未构成已知 bug |
 | A10 | 收敛小六壬的硬编码配色，并入 `AppTheme` | 本轮 UI 比对 | 4 个文件共 50 处硬编码色值（`0xFFE9A568` 32 处 + 墨蓝渐变 18 处），自成一套暗色皮肤，**不吃深色/浅色主题切换**。当前 App 内存在两套互斥视觉语言，塔罗↔小六壬切换像换 App |
@@ -50,6 +51,9 @@
 | A14 | 顶栏：AI 渠道/模型选择 + 添加案例 + 记录 | 用户提供 sydf 截图 | 顶栏左侧是 AI 渠道下拉（`专业人士▾ 内置AI`），右侧「添加案例」「记录」。**依赖 B7**（用户自建 API 层与 LLM 调用尚未开始） |
 | A15 | 品牌标识与主题画风系统 | 用户提供 sydf 截图 | 侧栏顶部与首页 hero 都有圆角 logo 图（`getDivinationThemeLogoUrl()`），且**随主题切换换图**；首页大标题「探索未来 解读术数」下半句是渐变文字。见 B8 |
 | A16 | 「功德箱」入口 | 用户提供 sydf 截图 | `merit-box-button`：胶囊按钮，accent-strong 底 + 白字 + `Heart` 图标，外链 `lk.sydf.cc`。是否保留取决于产品定位（见 B8） |
+| A17 | 随机层加独立的 `randomAlgorithmVersion` 并写入历史记录 | 第 3 轮 | 现有顶层版本是**术式**版本，不是随机层版本。随机层已改过两次输出，只靠术式版本号无法判断带 seed 的历史能否 replay |
+| A18 | 案例与历史存储从 SharedPreferences 迁 Drift/Isar | SYDF §12.2 | 现在案例库、历史各占一个 key 且全量 JSON 读写；案例模型已就位，迁库时机成熟 |
+| A19 | 合盘要求「至少两个不同案例」的选择器 | SYDF §5 | 案例模型已就位，但案例页目前只支持单选 |
 
 ### A10 / A11 补充说明（本轮 UI 比对结论）
 
@@ -127,6 +131,65 @@
 
 **sydf 的 6 套画风主题**（`divinationTheme.ts`）：`月`(清雅紫月) / `时`(明亮粉彩) / `墨`(水墨) / `仙`(清雅仙山) / `山海经`(古籍异兽) / `吃白饭的蓝色大肥鱼`(清透亮蓝)。每套含 30+ 组 `[light, dark]` 色值，为默认「月」这套已与 `AppTheme` 逐 token 对应。主题还带独立 logo 图与 `browserColor`。
 
+
+---
+
+## 第 3 轮：案例 + 快照 + 算法版本（产品地基）
+
+**背景**：SYDF 文档 §14 第一阶段第 2/3/4 项与 §15 验收标准第 4 条要求
+「案例库 + 案例快照 + 算法版本」，此前一件没做。本轮按先前建议的范围完成：
+**只做模型和字段，不动存储层**，先跑通语义再换数据库。
+
+### 本次修改
+
+**新增**
+
+- `lib/core/models/case_profile.dart`：`CaseProfile` + `CaseSnapshot`
+  + `CaseGender` / `CaseCalendarType`
+- `lib/features/cases/data/case_repository.dart`：案例 CRUD，存储键
+  `zhaoxingzhai.cases.v1`
+- `lib/features/cases/case_selection.dart`：全局案例选择（对应 sydf `caseSelection`）
+- `lib/features/cases/presentation/cases_page.dart`：案例页（列表 / 选择 / 新建 / 编辑）
+- 测试：`test/core/models/case_profile_test.dart`、
+  `test/features/cases/case_repository_test.dart`
+
+**修改**
+
+- `DivinationHistoryRecord` 新增顶层 `algorithmId` / `algorithmVersion` /
+  `schemaVersion` / `caseSnapshot` 四个字段
+- `addXiaoliuren` / `addTarot` 新增可选 `caseSnapshot` 参数
+- `AppShell`：`AppView.cases` 由历史页改为案例页；历史改为独立 endDrawer；
+  小六壬与塔罗回调带上当前案例快照
+- 历史卡片显示关联案例与算法版本（`algorithmLabel`）
+
+### 关键设计决策（后续勿推翻）
+
+1. **快照是值拷贝，不是引用**。修改或删除案例不影响已有历史，已有测试钉住
+   （含「重新读盘后依然不变」）。
+2. **快照反序列化不回退到当前案例**。字段缺失一律取缺省值。这是 SYDF §6.2
+   最后一条的硬要求，违反会导致旧历史被后来的资料静默篡改。
+3. **`birthDateTime` 存墙上时间 + `timezoneId`**，不存折算好的 UTC 瞬间。
+   这样用户日后修正时区，录入的原始资料不会被悄悄改写。
+4. **旧数据兼容**：顶层版本字段缺失时从 `payload.meta` / `payload.algorithm`
+   回补；两者都没有时记为 `unknown` / `0`，**不假装是 v1**。
+5. **历史与案例彻底分离**：案例页不展示任何结果，历史在 endDrawer
+   （对齐 sydf「全局历史作为独立抽屉或路由状态」）。
+
+### 验证
+
+| 项 | 结果 |
+|---|---|
+| `flutter analyze` | 零问题 |
+| `flutter test` | 103 全通过（原 68 + 新增 35） |
+| 快照不受案例后续修改影响（含重新读盘） | ✅ 测试覆盖 |
+| 旧数据版本回补 / 完全无版本标记为 unknown | ✅ 测试覆盖 |
+| 选中案例被删除后选择状态自动失效 | ✅ 测试覆盖 |
+
+### 下一步
+
+1. **提交本轮改动** —— 工作区仍积压第 3 轮之前未提交的改动，多会话并行有覆盖风险
+2. 数据导出流水线 + 三山国王灵签（A1 / A2）
+3. 阻塞决策 B1（历法）/ B3（AGPL）/ B7（AI 是否主轴）仍未拍板
 
 ---
 

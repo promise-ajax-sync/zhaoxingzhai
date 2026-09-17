@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
+
+import 'package:zhaoxingzhai/app/app_sidebar.dart';
+import 'package:zhaoxingzhai/app/app_topbar.dart';
+import 'package:zhaoxingzhai/app/app_view.dart';
+import 'package:zhaoxingzhai/app/placeholder_page.dart';
+import 'package:zhaoxingzhai/core/models/answer_preference.dart';
+import 'package:zhaoxingzhai/core/theme/app_theme.dart';
+import 'package:zhaoxingzhai/features/cases/case_selection.dart';
+import 'package:zhaoxingzhai/features/cases/data/case_repository.dart';
+import 'package:zhaoxingzhai/features/cases/presentation/cases_page.dart';
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
 import 'package:zhaoxingzhai/features/history/presentation/history_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
 import 'package:zhaoxingzhai/features/xiaoliuren/presentation/xiaoliuren_page.dart';
 
+/// 应用外壳。
+///
+/// 宽屏：固定侧栏 + 顶栏 + 内容区；窄屏：侧栏收进抽屉，顶栏常驻。
+/// 页面用 [IndexedStack] 承载，切换入口不丢失各页状态。
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -13,61 +27,141 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _selectedIndex = 0;
+  AppView _view = AppView.tools;
+  AnswerPreference _preference = AnswerPreference.chat;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   late final DivinationHistoryRepository _historyRepository;
-  late final List<Widget> _pages;
+  late final CaseRepository _caseRepository;
+  late final CaseSelectionController _caseSelection;
+
+  /// 已接入真实实现的入口；未列入的一律走占位页。
+  late final Map<AppView, Widget> _implemented = {
+    AppView.tools: HomePage(onOpenFeature: _open),
+    AppView.xiaoliuren: XiaoliurenPage(
+      onResult: (result) => _historyRepository.addXiaoliuren(
+        result,
+        caseSnapshot: _caseSelection.currentSnapshot,
+      ),
+    ),
+    AppView.tarot: TarotPage(
+      onResult: (result) => _historyRepository.addTarot(
+        result,
+        caseSnapshot: _caseSelection.currentSnapshot,
+      ),
+    ),
+    AppView.cases: CasesPage(
+      repository: _caseRepository,
+      selection: _caseSelection,
+    ),
+  };
 
   @override
   void initState() {
     super.initState();
     _historyRepository = DivinationHistoryRepository();
-    _pages = [
-      HomePage(onOpenFeature: _selectPage),
-      XiaoliurenPage(onResult: _historyRepository.addXiaoliuren),
-      TarotPage(onResult: _historyRepository.addTarot),
-      HistoryPage(repository: _historyRepository),
-    ];
+    _caseRepository = CaseRepository();
+    _caseSelection = CaseSelectionController(_caseRepository);
   }
 
   @override
   void dispose() {
+    _caseSelection.dispose();
+    _caseRepository.dispose();
     _historyRepository.dispose();
     super.dispose();
   }
 
-  void _selectPage(int index) {
-    if (_selectedIndex == index) return;
-    setState(() => _selectedIndex = index);
+  void _open(AppView view) {
+    if (view == _view) return;
+    setState(() => _view = view);
+  }
+
+  /// 全局历史作为独立抽屉打开，不与案例页混用。
+  void _openHistory() {
+    _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  void _select(AppView view) {
+    _open(view);
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Widget _pageFor(AppView view) =>
+      _implemented[view] ?? PlaceholderPage(view: view);
+
+  /// 全局历史抽屉。
+  ///
+  /// 参考实现里历史是独立抽屉或路由状态，不与案例页共用入口。
+  Widget get _historyDrawer {
+    final available = MediaQuery.sizeOf(context).width;
+    final width = available >= 480 ? 420.0 : available * 0.92;
+    return Drawer(
+      width: width,
+      child: SafeArea(child: HistoryPage(repository: _historyRepository)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width >= AppTheme.sidebarBreakpoint;
+
+    final topbar = AppTopBar(
+      view: _view,
+      onOpenNav: () => _scaffoldKey.currentState?.openDrawer(),
+      onOpenCases: () => _open(AppView.cases),
+      onOpenHistory: _openHistory,
+      showNavToggle: !wide,
+      // AI 偏好入口只在首页出现，其余页面顶栏显示标题。
+      preference: _view == AppView.tools ? _preference : null,
+      onPreferenceChanged: (value) => setState(() => _preference = value),
+      channelName: '内置 AI',
+    );
+
+    final content = IndexedStack(
+      index: _view.index,
+      children: [for (final view in AppView.values) _pageFor(view)],
+    );
+
+    if (wide) {
+      return Scaffold(
+        key: _scaffoldKey,
+        endDrawer: _historyDrawer,
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppSidebar(current: _view, onSelect: _open),
+            Expanded(
+              child: Column(
+                children: [
+                  topbar,
+                  Expanded(child: content),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _selectPage,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_mosaic_outlined),
-            selectedIcon: Icon(Icons.auto_awesome_mosaic),
-            label: '首页',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.nightlight_outlined),
-            selectedIcon: Icon(Icons.nightlight),
-            label: '小六壬',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.style_outlined),
-            selectedIcon: Icon(Icons.style),
-            label: '塔罗',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history),
-            label: '历史',
-          ),
+      key: _scaffoldKey,
+      drawer: Drawer(
+        width: AppTheme.sidebarWidth,
+        backgroundColor: AppTheme.sidebar(context),
+        child: AppSidebar(
+          current: _view,
+          onSelect: _select,
+          onClose: () => Navigator.of(context).pop(),
+        ),
+      ),
+      endDrawer: _historyDrawer,
+      body: Column(
+        children: [
+          topbar,
+          Expanded(child: content),
         ],
       ),
     );

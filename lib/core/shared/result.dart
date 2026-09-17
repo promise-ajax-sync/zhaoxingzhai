@@ -5,6 +5,8 @@ library;
 
 import 'dart:convert';
 
+import 'package:zhaoxingzhai/core/models/algorithm_metadata.dart';
+
 /// 错误类别
 enum ErrorCategory {
   validation, // 验证错误
@@ -58,6 +60,9 @@ class ResultMeta {
   final String engineVersion;
   final String schemaVersion;
   final String algorithm;
+  final int algorithmVersion;
+  final String ruleset;
+  final String implementation;
   final String? model;
   final DateTime calculatedAt;
   final String inputHash;
@@ -68,6 +73,9 @@ class ResultMeta {
     required this.engineVersion,
     required this.schemaVersion,
     required this.algorithm,
+    required this.algorithmVersion,
+    required this.ruleset,
+    required this.implementation,
     this.model,
     required this.calculatedAt,
     required this.inputHash,
@@ -79,6 +87,9 @@ class ResultMeta {
     'engineVersion': engineVersion,
     'schemaVersion': schemaVersion,
     'algorithm': algorithm,
+    'algorithmVersion': algorithmVersion,
+    'ruleset': ruleset,
+    'implementation': implementation,
     if (model != null) 'model': model,
     'calculatedAt': calculatedAt.toUtc().toIso8601String(),
     'inputHash': inputHash,
@@ -117,19 +128,22 @@ String hashStableValue(dynamic value) {
 }
 
 ResultMeta createResultMeta({
-  required String algorithm,
+  required AlgorithmDescriptor descriptor,
   required dynamic input,
   String? model,
   DateTime? calculatedAt,
   Map<String, dynamic>? random,
 }) {
-  final normalizedAlgorithm = algorithm.trim();
+  final normalizedAlgorithm = descriptor.id.trim();
   if (normalizedAlgorithm.isEmpty) {
     throw ArgumentError('结果元数据必须提供算法标识。');
   }
   final inputHash = hashStableValue(input);
   final identityHash = hashStableValue({
     'algorithm': normalizedAlgorithm,
+    'algorithmVersion': descriptor.version,
+    'ruleset': descriptor.ruleset,
+    'implementation': descriptor.implementation,
     'engineVersion': mingyuCoreVersion,
     'schemaVersion': mingyuSchemaVersion,
     ...model == null ? const {} : {'model': model},
@@ -140,6 +154,9 @@ ResultMeta createResultMeta({
     engineVersion: mingyuCoreVersion,
     schemaVersion: mingyuSchemaVersion,
     algorithm: normalizedAlgorithm,
+    algorithmVersion: descriptor.version,
+    ruleset: descriptor.ruleset,
+    implementation: descriptor.implementation,
     model: model,
     calculatedAt: calculatedAt ?? DateTime.now().toUtc(),
     inputHash: inputHash,
