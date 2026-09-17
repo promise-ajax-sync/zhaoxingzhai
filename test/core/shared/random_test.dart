@@ -242,6 +242,29 @@ void main() {
         expect(restored[i], closeTo(vectors['test']![i], 1e-9));
       }
     });
+
+    // Web 平台回归网。
+    //
+    // 在 Web 上 Dart 的 int 由 JS 数字承载，只有 53 位精度。
+    // 若 _imul 写成 `(a * b) & 0xFFFFFFFF`，两个 32 位数的乘积可达 2⁶⁴，
+    // 会静默丢精度，使 Web 与原生平台产生完全不同的随机序列。
+    // 下面用乘积超过 2⁵³ 的输入把这一点钉住。
+    test('种子哈希应正确截断超过 2^53 的乘积', () {
+      // 0xFFFFFFFF * 16777619 ≈ 7.2e16 > 2^53，是精度丢失的高危输入
+      final ctx = createRandomContext(seed: 'test');
+      expect(ctx.random(), closeTo(0.7171058997, 1e-9));
+    });
+
+    test('长种子（多轮哈希累乘）应保持确定性', () {
+      const long = '这是一个足够长的种子用来触发多轮哈希累乘与截断验证';
+      final a = createRandomContext(seed: long);
+      final b = createRandomContext(seed: long);
+      expect(a.random(), equals(b.random()));
+
+      // 中文种子走 UTF-16 code unit，需与上游一致
+      final cn = createRandomContext(seed: '资料隔离');
+      expect(cn.random(), closeTo(0.7317366910, 1e-9));
+    });
   });
 
   group('安全随机数值域', () {

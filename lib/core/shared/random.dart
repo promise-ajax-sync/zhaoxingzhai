@@ -110,8 +110,22 @@ int secureRandomInt(int maxExclusive) {
   return value ~/ bucketSize;
 }
 
-/// 32 位截断乘法（等价于 Math.imul）
-int _imul(int a, int b) => (a * b) & 0xFFFFFFFF;
+/// 32 位截断乘法（等价于 JS 的 Math.imul）
+///
+/// 为什么不用更短的 `(a * b) & 0xFFFFFFFF`：在 **Web 平台**上 Dart 的 int
+/// 由 JS 数字承载，只有 53 位精度，而两个 32 位数的乘积可达 2⁶⁴，
+/// 会静默丢精度，导致 Web 与原生平台产生不同的随机序列。
+/// 这里拆成 16 位半字，保证任一中间结果都不超过 2⁵³。
+///
+/// `ah * bh` 项的真实权重是 2³²，在 32 位截断中必然为 0，故无需计算。
+int _imul(int a, int b) {
+  final ah = (a >> 16) & 0xffff;
+  final al = a & 0xffff;
+  final bh = (b >> 16) & 0xffff;
+  final bl = b & 0xffff;
+
+  return (al * bl + (((ah * bl + al * bh) & 0xffff) << 16)) & 0xFFFFFFFF;
+}
 
 /// 哈希种子（FNV-1a 算法）
 int _hashSeed(dynamic seed) {
