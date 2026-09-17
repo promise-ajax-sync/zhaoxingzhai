@@ -1,12 +1,18 @@
 /// 核心随机数系统
 ///
-/// 完整移植自 mingyu-core/src/shared/random.ts
-/// 支持三种随机模式：system（系统随机）、seeded（种子随机）、replay（重放模式）
+/// 设计参考 mingyu-core/src/shared/random.ts，但**不追求与上游位级一致**。
+/// 本实现自成一个确定性体系：同一 seed 在同一实现版本内跨设备、跨平台结果恒定。
+///
+/// 支持四种随机模式：system（系统随机）、seeded（种子随机）、
+/// custom（自定义随机源）、replay（重放模式）
 ///
 /// 核心特性：
 /// 1. 可重放：相同 seed 产生相同结果
 /// 2. 可追溯：记录所有随机样本
 /// 3. 可验证：replay 模式精确复现
+///
+/// 注意：Dart 的 int 是 64 位，因而 32 位截断乘法直接写作
+/// `(a * b) & 0xFFFFFFFF` 即可，无需 JS 那种拆高低 16 位的 Math.imul 模拟。
 library;
 
 import 'dart:math' as math;
@@ -68,13 +74,19 @@ class RandomContext {
 /// 32位无符号整数范围
 const _uint32Range = 0x100000000;
 
+/// [0, 1) 的 53 位精度分母
+const _uint53Range = 9007199254740992;
+
+/// 系统级安全随机源。复用同一实例，避免每次调用都重新初始化熵池。
+final math.Random _secureRandom = math.Random.secure();
+
 /// 生成系统级安全随机浮点数 [0, 1)
+///
+/// 取 27 位高位与 26 位低位拼成 53 位整数，再除以 2^53。
 double secureRandomFloat() {
-  final random = math.Random.secure();
-  // 生成 53 位精度的随机数
-  final high = random.nextInt(1 << 26);
-  final low = random.nextInt(1 << 27);
-  return (high * 67108864 + low) / 9007199254740992;
+  final high = _secureRandom.nextInt(1 << 27);
+  final low = _secureRandom.nextInt(1 << 26);
+  return (high * 67108864 + low) / _uint53Range;
 }
 
 /// 使用拒绝采样生成无模偏差的随机整数
@@ -87,16 +99,19 @@ int secureRandomInt(int maxExclusive) {
     );
   }
 
-  final random = math.Random.secure();
-  final acceptanceLimit = _uint32Range - (_uint32Range % maxExclusive);
-  
+  final bucketSize = _uint32Range ~/ maxExclusive;
+  final acceptanceLimit = bucketSize * maxExclusive;
+
   int value;
   do {
-    value = random.nextInt(_uint32Range);
+    value = _secureRandom.nextInt(_uint32Range);
   } while (value >= acceptanceLimit);
-  
-  return value % maxExclusive;
+
+  return value ~/ bucketSize;
 }
+
+/// 32 位截断乘法（等价于 Math.imul）
+int _imul(int a, int b) => (a * b) & 0xFFFFFFFF;
 
 /// 哈希种子（FNV-1a 算法）
 int _hashSeed(dynamic seed) {
@@ -111,13 +126,13 @@ int _hashSeed(dynamic seed) {
 
   final text = seed.toString();
   int hash = 2166136261;
-  
+
   for (int i = 0; i < text.length; i++) {
     hash ^= text.codeUnitAt(i);
-    hash = (hash * 16777619) & 0xFFFFFFFF;
+    hash = _imul(hash, 16777619);
   }
-  
-  return hash;
+
+  return hash & 0xFFFFFFFF;
 }
 
 /// 创建种子随机源（PCG 算法）
@@ -128,21 +143,15 @@ RandomSource createSeededRandom(dynamic seed) {
   return () {
     state = (state + 0x6d2b79f5) & 0xFFFFFFFF;
     int value = state;
-    
-    value = _imul(value ^ (value >> 15), value | 1);
-    value ^= value + _imul(value ^ (value >> 7), value | 61);
-    
-    return ((value ^ (value >> 14)) & 0xFFFFFFFF) / 4294967296.0;
-  };
-}
 
-/// 模拟 Math.imul
-int _imul(int a, int b) {
-  final ah = (a >> 16) & 0xffff;
-  final al = a & 0xffff;
-  final bh = (b >> 16) & 0xffff;
-  final bl = b & 0xffff;
-  return ((al * bl) + (((ah * bl + al * bh) << 16) & 0xFFFFFFFF)) & 0xFFFFFFFF;
+    value = _imul(value ^ (value >> 15), value | 1);
+    // 加法会产生 33 位中间值，必须在异或前先截断到 32 位，
+    // 否则高位会漏进异或结果（此前版本即因此与预期序列分叉）。
+    final mixed = (value + _imul(value ^ (value >> 7), value | 61)) & 0xFFFFFFFF;
+    value = (value ^ mixed) & 0xFFFFFFFF;
+
+    return (value ^ (value >> 14)) / 4294967296.0;
+  };
 }
 
 /// 断言随机样本有效性
