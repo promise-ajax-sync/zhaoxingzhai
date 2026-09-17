@@ -1,0 +1,6 @@
+# Copy this file to android/key.properties and replace every placeholder.
+# Keep android/key.properties and the keystore itself private.
+storePassword=replace-with-store-password
+keyPassword=replace-with-key-password
+keyAlias=upload
+storeFile=../keystore/zhaoxingzhai-upload.jks

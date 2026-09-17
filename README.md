@@ -1,0 +1,91 @@
+# 昭星斋（Zhaoxingzhai）
+
+昭星斋是一个 Flutter 东方术数与占卜应用。算法、数据结构和兼容性测试以本地 `mingyu 0.4.0` 为基准，产品结构与交互参考 `sydf`。
+
+> 所有排盘与占卜结果仅供传统文化研究和休闲参考，不构成医疗、心理、法律、投资等专业建议。
+
+## 当前状态
+
+已经接入应用导航的功能：
+
+- 小六壬时间起课
+  - 通行掌诀与《多能鄙事》两种规则
+  - 固定东八区民用时间口径
+  - 农历、四柱干支、计算轨迹、结果 meta 与结构化 evidence
+- 塔罗占卜
+  - 78 张塔罗牌
+  - 与 mingyu 0.4.0 同步的 18 种牌阵
+  - 自动抽牌与实体牌手动录入页面
+  - 正逆位、seed/replay 随机轨迹和证据分析
+
+基础能力：
+
+- 小六壬与塔罗结果自动保存，提供当前设备本地历史记录
+- IANA 历史时区与 DST 歧义/跳时识别
+- 中国 1986—1991 夏令时与真太阳时基础代码
+- 八卦、六十四卦、干支和塔罗 JSON 数据加载
+- Android 和 Web 构建
+
+## 运行
+
+```bash
+flutter pub get
+flutter run
+```
+
+检查项目：
+
+```bash
+flutter analyze
+flutter test
+flutter build apk --debug
+flutter build web
+```
+
+从本地 mingyu 重新同步塔罗数据：
+
+```bash
+node scripts/export_data.js
+```
+
+### Android Release 签名
+
+正式发布前，将 `android/key.properties.example` 复制为
+`android/key.properties`，并填写上传密钥信息。真实的 properties 文件和
+keystore 已加入忽略规则，不应提交到版本库。未配置密钥时，Debug 构建不受
+影响，Release 产物不会使用 Flutter 的共享调试密钥签名。
+
+## 项目结构
+
+```text
+lib/
+├── app/                    应用外壳与导航
+├── core/
+│   ├── calendar/           历法、时区、夏令时和真太阳时
+│   ├── data/               JSON 数据加载
+│   ├── engine/             与 UI 无关的术式算法
+│   ├── shared/             随机、结果协议和验证
+│   ├── theme/              统一主题与设计 token
+│   └── widgets/            通用组件
+└── features/
+    ├── home/               功能首页
+    ├── xiaoliuren/         小六壬页面
+    └── tarot/              塔罗引擎与页面
+```
+
+迁移版本、上游提交和验收原则见 [`docs/MIGRATION_BASELINE.md`](docs/MIGRATION_BASELINE.md)。
+
+## 后续计划
+
+1. 补齐塔罗逐张翻牌交互和结果持久化；
+2. 建立案例、历史详情、设置和主题切换；
+3. 依次迁移蓍草、灵签、梅花、六爻；
+4. 再处理奇门、六壬、太乙、八字、紫微和星盘等复杂模块；
+5. 配置正式应用图标、启动页，并准备实际的 Release 上传密钥。
+
+## 上游与许可证
+
+- mingyu：<https://github.com/Brhiza/mingyu>
+- sydf：<https://github.com/Brhiza/sydf>
+
+本项目包含从 mingyu 移植和改写的代码，按照 GNU AGPL-3.0-only 发布，详见 [LICENSE](LICENSE)。

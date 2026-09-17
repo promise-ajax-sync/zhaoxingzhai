@@ -1,0 +1,35 @@
+{
+    "name": "昭星斋",
+    "short_name": "昭星斋",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#1C1A20",
+    "theme_color": "#8368AB",
+    "description": "基于 mingyu 算法迁移的 Flutter 东方术数与占卜应用。",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
