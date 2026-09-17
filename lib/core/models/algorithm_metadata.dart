@@ -54,4 +54,10 @@ abstract final class AlgorithmCatalog {
     version: 1,
     ruleset: 'ssgw-92-signs-manual',
   );
+
+  static const dailyHexagram = AlgorithmDescriptor(
+    id: 'daily-hexagram',
+    version: 3,
+    ruleset: 'three-coins-six-lines-taking-rules-v1',
+  );
 }

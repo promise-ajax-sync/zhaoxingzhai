@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
+import 'package:zhaoxingzhai/core/engine/daily_hexagram/daily_hexagram.dart';
 import 'package:zhaoxingzhai/core/engine/ssgw/ssgw_divination.dart';
 import 'package:zhaoxingzhai/core/models/case_profile.dart';
 import 'package:zhaoxingzhai/core/shared/result.dart';
@@ -47,6 +48,7 @@ class DivinationHistoryRecord {
     'xiaoliuren' => '小六壬',
     'tarot' => '塔罗',
     'ssgw' => '灵签',
+    'daily-hexagram' => '每日一卦',
     _ => type,
   };
 
@@ -248,6 +250,30 @@ class DivinationHistoryRepository extends ChangeNotifier {
         summary:
             '第${result.sign.number}签 · ${result.sign.poem.replaceAll('\n', ' ')}',
         createdAt: result.timestamp,
+        payload: result.toJson(),
+        algorithmId: result.algorithm.id,
+        algorithmVersion: result.algorithm.version,
+        schemaVersion: mingyuSchemaVersion,
+        caseSnapshot: caseSnapshot,
+      ),
+    );
+  }
+
+  Future<void> addDailyHexagram(
+    DailyHexagramResult result, {
+    CaseSnapshot? caseSnapshot,
+  }) async {
+    await add(
+      DivinationHistoryRecord(
+        id: result.isManual
+            ? 'daily-hexagram:manual:${result.generatedAt.microsecondsSinceEpoch}'
+            : 'daily-hexagram:${result.dateKey}:${result.caseKey ?? 'general'}',
+        type: 'daily-hexagram',
+        title: '${result.original.symbol} ${result.original.name}',
+        summary:
+            '${result.dateKey}；变${result.changed.name}；互${result.inter.name}；'
+            '${result.movingLines.length}个动爻',
+        createdAt: result.generatedAt,
         payload: result.toJson(),
         algorithmId: result.algorithm.id,
         algorithmVersion: result.algorithm.version,

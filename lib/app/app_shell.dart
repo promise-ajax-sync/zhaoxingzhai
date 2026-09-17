@@ -9,6 +9,7 @@ import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 import 'package:zhaoxingzhai/features/cases/case_selection.dart';
 import 'package:zhaoxingzhai/features/cases/data/case_repository.dart';
 import 'package:zhaoxingzhai/features/cases/presentation/cases_page.dart';
+import 'package:zhaoxingzhai/features/daily_hexagram/presentation/daily_hexagram_page.dart';
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
 import 'package:zhaoxingzhai/features/history/presentation/history_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
@@ -48,6 +49,13 @@ class _AppShellState extends State<AppShell> {
     ),
     AppView.oracle: OraclePage(
       onResult: (result) => _historyRepository.addSsgw(
+        result,
+        caseSnapshot: _caseSelection.currentSnapshot,
+      ),
+    ),
+    AppView.dailyHexagram: DailyHexagramPage(
+      currentCase: () => _caseSelection.currentSnapshot,
+      onResult: (result) => _historyRepository.addDailyHexagram(
         result,
         caseSnapshot: _caseSelection.currentSnapshot,
       ),

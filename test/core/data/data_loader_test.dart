@@ -73,6 +73,54 @@ void main() {
       final hexagram = HexagramData.getHexagramById(1);
       expect(hexagram?.name, '乾为天');
       expect(hexagram?.description, '元亨利贞');
+      expect(hexagram?.yaoCi, hasLength(6));
+      expect(hexagram?.yaoCi.first, '潜龙勿用');
+      expect(hexagram?.yongCi, '见群龙无首，吉');
+    });
+
+    test('六十四卦完整数据应满足唯一性与爻辞约束', () async {
+      await HexagramData.load();
+      final hexagrams = HexagramData.hexagrams;
+      expect(hexagrams.map((item) => item.id).toSet(), hasLength(64));
+      expect(hexagrams.map((item) => item.binary).toSet(), hasLength(64));
+
+      for (final hexagram in hexagrams) {
+        expect(
+          hexagram.binary,
+          matches(RegExp(r'^[01]{6}$')),
+          reason: hexagram.name,
+        );
+        expect(hexagram.yaoCi, hasLength(6), reason: hexagram.name);
+        expect(
+          hexagram.yaoCi.every((text) => text.trim().isNotEmpty),
+          isTrue,
+          reason: hexagram.name,
+        );
+        expect(
+          HexagramData.getTrigramByName(hexagram.upper)?.binary,
+          hexagram.binary.substring(0, 3),
+          reason: '${hexagram.name} 上卦',
+        );
+        expect(
+          HexagramData.getTrigramByName(hexagram.lower)?.binary,
+          hexagram.binary.substring(3),
+          reason: '${hexagram.name} 下卦',
+        );
+        expect(
+          HexagramData.getHexagramByBinary(hexagram.binary),
+          same(hexagram),
+        );
+      }
+
+      expect(HexagramData.getHexagramById(2)?.yongCi, '利永贞');
+      expect(
+        hexagrams
+            .where((item) => item.yongCi != null)
+            .map((item) => item.id)
+            .toSet(),
+        {1, 2},
+      );
+      expect(HexagramData.getHexagramByBinary('222222'), isNull);
     });
 
     test('不存在的卦象查询应返回 null', () async {

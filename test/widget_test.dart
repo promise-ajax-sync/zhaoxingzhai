@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/app/app_sidebar.dart';
 import 'package:zhaoxingzhai/core/data/ssgw_data.dart';
 import 'package:zhaoxingzhai/core/data/tarot_data.dart';
+import 'package:zhaoxingzhai/core/data/hexagram_data.dart';
 import 'package:zhaoxingzhai/features/cases/presentation/cases_page.dart';
+import 'package:zhaoxingzhai/features/daily_hexagram/presentation/daily_hexagram_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
 import 'package:zhaoxingzhai/features/oracle/presentation/oracle_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
@@ -143,6 +145,22 @@ void main() {
 
     expect(find.text('第1签'), findsOneWidget);
     expect(find.textContaining('第一签'), findsWidgets);
+  });
+
+  testWidgets('侧栏可以进入每日一卦并显示本卦变卦互卦', (WidgetTester tester) async {
+    await tester.runAsync(HexagramData.load);
+    await _pumpApp(tester, _wideSize);
+
+    await tester.tap(find.text('每日一卦'));
+    await _pumpUntilFound(tester, find.byType(DailyHexagramPage));
+    await _pumpUntilFound(tester, find.text('六爻记录'));
+
+    expect(find.byType(DailyHexagramPage), findsOneWidget);
+    expect(find.textContaining('通用日卦'), findsOneWidget);
+    expect(find.textContaining('本卦 ·'), findsOneWidget);
+    expect(find.text('变卦'), findsOneWidget);
+    expect(find.text('互卦'), findsOneWidget);
+    expect(find.text('手动录入'), findsOneWidget);
   });
 
   testWidgets('塔罗支持切换到手动录牌并校验完整输入', (WidgetTester tester) async {

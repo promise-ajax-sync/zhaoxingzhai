@@ -49,6 +49,12 @@ class Hexagram {
   final String palace;
   final String description;
 
+  /// 六爻爻辞，顺序为初爻到上爻（自下而上）。
+  final List<String> yaoCi;
+
+  /// 乾卦用九、坤卦用六；其余卦为空。
+  final String? yongCi;
+
   const Hexagram({
     required this.id,
     required this.name,
@@ -58,6 +64,8 @@ class Hexagram {
     required this.lower,
     required this.palace,
     required this.description,
+    required this.yaoCi,
+    this.yongCi,
   });
 
   factory Hexagram.fromJson(Map<String, dynamic> json) {
@@ -70,6 +78,8 @@ class Hexagram {
       lower: json['lower'] as String,
       palace: json['palace'] as String,
       description: json['description'] as String,
+      yaoCi: (json['yaoCi'] as List).cast<String>(),
+      yongCi: json['yongCi'] as String?,
     );
   }
 }
@@ -150,6 +160,15 @@ class HexagramData {
   static Hexagram? getHexagramByName(String name) {
     for (final hexagram in hexagrams) {
       if (hexagram.name == name) return hexagram;
+    }
+    return null;
+  }
+
+  /// 根据六位卦象查找。格式为上卦三位 + 下卦三位，
+  /// 每组三位内部均按初爻到三爻（自下而上）排列。
+  static Hexagram? getHexagramByBinary(String binary) {
+    for (final hexagram in hexagrams) {
+      if (hexagram.binary == binary) return hexagram;
     }
     return null;
   }

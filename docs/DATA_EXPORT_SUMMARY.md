@@ -7,7 +7,7 @@
 | 脚本文件 | 功能 | 输出文件 |
 |---------|------|---------|
 | `scripts/export_data.js` | 导出塔罗牌和干支数据 | `tarot.json`, `ganzhi.json` |
-| `scripts/export_hexagrams.js` | 导出八卦和六十四卦数据 | `trigrams.json`, `hexagrams.json` |
+| `scripts/export_hexagrams.mjs` | 从 mingyu 0.4.0 导出完整六十四卦数据 | `hexagrams.json` |
 
 ### 2. 导出的 JSON 数据文件
 
@@ -278,7 +278,7 @@ flutter analyze lib/core/data
 # 重新生成所有数据
 cd e:\newProject\fluttersm\zhaoxingzhai
 node scripts\export_data.js
-node scripts\export_hexagrams.js
+node scripts\export_hexagrams.mjs
 
 # 验证编译
 flutter analyze lib/core/data
