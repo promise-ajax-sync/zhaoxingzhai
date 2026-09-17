@@ -43,6 +43,18 @@
 | A7 | 随机层加 `algorithmVersion` 常量，并随历史记录持久化 | 潜在问题 1 | 见下方说明，越早加越省事 |
 | A8 | 给随机层加 Web 目标验证脚本（`dart compile js` 后跑同一批种子对比） | 潜在问题 2 | `flutter test` 跑原生 VM，**测不出 Web 问题**，这是当前 CI 盲区 |
 | A9 | 验证 `codeUnitAt` 与上游 `charCodeAt` 在代理对字符（emoji）上是否分叉 | 潜在问题 8 | 未验证，尚未构成已知 bug |
+| A10 | 收敛小六壬的硬编码配色，并入 `AppTheme` | 本轮 UI 比对 | 4 个文件共 50 处硬编码色值（`0xFFE9A568` 32 处 + 墨蓝渐变 18 处），自成一套暗色皮肤，**不吃深色/浅色主题切换**。当前 App 内存在两套互斥视觉语言，塔罗↔小六壬切换像换 App |
+| A11 | 补宽屏断点与侧栏/顶栏布局 | 本轮 UI 比对 | 现状无任何 `LayoutBuilder`，全部按手机竖屏写死；Web 版在桌面浏览器会呈窄柱居中。**前置**：需先决定是否复刻 sydf 的 15 视图侧栏结构（见 B6） |
+
+### A10 / A11 补充说明（本轮 UI 比对结论）
+
+**已经做到的部分**（无需返工）：`AppTheme` 与 sydf `tokens.css` 的色值**精确相同**——浅色 13 个主 token（canvas `#f3f2f5`、surface `#fbfafc`、surface-raised `#ffffff`、text-primary `#2e2b36`、text-secondary `#6a6572`、text-tertiary `#77717f`、line `#dfdce4`、line-strong `#cbc6d0`、accent `#8368ab`、accent-strong `#694c96`、accent-soft `#e9e2f2`、danger `#a65364`、success `#55796e`）与深色主题全套逐一对应；间距/圆角/动画时长三组数值也全部对齐。
+
+**A10 排查范围**：`xiaoliuren_page.dart`、`date_time_input_section.dart`、`result_display_section.dart`、`calculating_animation.dart`。改法是把这些色值提成 `AppTheme` 里的语义 token，或直接复用现有 accent/warning 槽位。改完顺带验证深色模式下的观感（当前它在浅色模式下也是一整片墨蓝）。
+
+**A11 缺失的布局 token**（sydf 有、Flutter 无）：`--ds-topbar-height: 64px`、`--ds-page-content: 1180px`、`--ds-page-gutter`、`--ds-control-sm/md/lg: 34/38/44px`、`--ds-reading-card-width: 136px`、`--ds-reading-section-x/y`。宽屏排版要散，缺的就是这些约束。
+
+**A11 与 A10 的取舍**：A10 改动小、收益直接，建议先做；A11 改动大且依赖 B6 的结构决策，建议后置。若打算先把术式铺开再统一样式，两者都往后排，但 **A10 不宜拖太久**——后续每加一个页面都可能再抄一遍那套暗色。
 
 ### B. 待定决策（需要用户拍板）
 
@@ -53,6 +65,7 @@
 | B3 | AGPL-3.0-only 传染性 | ①接受 GPL 系开源 ②只用 REST 不本地直译 ③其他 | **法律问题非技术问题**。本地直译算法构成衍生作品；网络 API 调用通常不构成 |
 | B4 | `evidence` 层是否移植 | ①全部在 Flutter 侧重写渲染（建议）②移植 | 该层体量最大（如 meihua 算术 567 行 vs evidence 1897 行），本质是 UI 渲染 |
 | B5 | 《这一条》的具体所指 | 待确认 | 已废弃「验收标准 2 的与上游逐字段一致」与「规则 2 的保持原函数名」。**seed + replay 保留**（那是 App 自身功能） |
+| B6 | 是否复刻 sydf 的 15 视图侧栏结构 | ①复刻（侧栏 + 顶栏，移动端收抽屉）②保持现在的 4 Tab ③两者都做（宽屏侧栏 / 窄屏底部 Tab，响应式切换） | sydf 的 `appRoute.ts` 列了 15 个视图（13 个工具入口 + `cases`/`settings`），现有 Flutter 只落实了 2 个工具 + 自加的历史页。**决定 A11 怎么做**；选项 ③ 最贴近 Web/移动双端目标但工作量最大 |
 
 ### C. 未开工大项
 
