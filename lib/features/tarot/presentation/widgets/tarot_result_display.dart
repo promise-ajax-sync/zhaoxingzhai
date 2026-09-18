@@ -5,11 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 import 'package:zhaoxingzhai/core/widgets/app_widgets.dart';
 import 'package:zhaoxingzhai/core/engine/tarot/tarot_divination.dart';
+import 'package:zhaoxingzhai/core/interpretation/tarot_interpretation.dart';
+import 'package:zhaoxingzhai/core/models/divination_question.dart';
 
 class TarotResultDisplay extends StatelessWidget {
   final TarotDrawResult result;
+  final DivinationQuestion? question;
 
-  const TarotResultDisplay({super.key, required this.result});
+  const TarotResultDisplay({super.key, required this.result, this.question});
 
   @override
   Widget build(BuildContext context) {
@@ -125,8 +128,45 @@ class TarotResultDisplay extends StatelessWidget {
           ),
         ),
 
+        const SizedBox(height: AppTheme.space5),
+        const AppSectionHeading(title: '现代白话解读'),
+        _buildModernReading(context),
+
         const SizedBox(height: AppTheme.space7),
       ],
+    );
+  }
+
+  Widget _buildModernReading(BuildContext context) {
+    final reading = TarotInterpretation.build(result, question: question);
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '问题回应 · ${reading.questionIntentLabel}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          Text(reading.directAnswer),
+          const Divider(height: AppTheme.space5),
+          Text('判断依据', style: Theme.of(context).textTheme.titleMedium),
+          Text(reading.evidence.summary),
+          const Divider(height: AppTheme.space5),
+          Text(reading.overview),
+          const Divider(height: AppTheme.space5),
+          for (final item in reading.cardReadings)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.space2),
+              child: Text(item),
+            ),
+          const Divider(height: AppTheme.space5),
+          Text('行动建议', style: Theme.of(context).textTheme.titleMedium),
+          Text(reading.action),
+          const SizedBox(height: AppTheme.space3),
+          Text('风险提醒', style: Theme.of(context).textTheme.titleMedium),
+          Text(reading.riskReminder),
+        ],
+      ),
     );
   }
 

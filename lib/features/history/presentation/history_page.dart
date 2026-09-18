@@ -3,6 +3,7 @@ import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 import 'package:zhaoxingzhai/core/widgets/app_widgets.dart';
 import 'package:zhaoxingzhai/features/history/data/daily_hexagram_history.dart';
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
+import 'package:zhaoxingzhai/features/history/data/meihua_history.dart';
 
 class HistoryPage extends StatefulWidget {
   final DivinationHistoryRepository repository;
@@ -125,10 +126,14 @@ class _HistoryRecordCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTarot = record.type == 'tarot';
+    final hasDetails =
+        record.type == 'daily-hexagram' || record.type == 'meihua';
 
     return AppCard(
-      onTap: record.type == 'daily-hexagram'
-          ? () => _showDailyHexagramDetails(context, record)
+      onTap: hasDetails
+          ? () => record.type == 'meihua'
+                ? _showMeihuaDetails(context, record)
+                : _showDailyHexagramDetails(context, record)
           : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,7 +201,34 @@ class _HistoryRecordCard extends StatelessWidget {
             '${_formatTime(record.createdAt)} · ${record.algorithmLabel}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          if (record.type == 'daily-hexagram') ...[
+          if (record.aiInterpretation != null) ...[
+            const SizedBox(height: AppTheme.space2),
+            Row(
+              children: [
+                Icon(
+                  record.aiInterpretation!.usedFallback
+                      ? Icons.offline_bolt_outlined
+                      : Icons.auto_awesome,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: AppTheme.space1),
+                Text(
+                  record.aiInterpretation!.usedFallback
+                      ? '已保存本地 AI 降级解读'
+                      : '已保存 AI 解读 · ${record.aiInterpretation!.modelId}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space1),
+            Text(
+              record.aiInterpretation!.content,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          if (hasDetails) ...[
             const SizedBox(height: AppTheme.space2),
             Text(
               '点击查看保存时的完整卦盘',
@@ -235,11 +267,125 @@ class _HistoryRecordCard extends StatelessWidget {
     );
   }
 
+  Future<void> _showMeihuaDetails(
+    BuildContext context,
+    DivinationHistoryRecord record,
+  ) async {
+    final details = MeihuaHistoryDetails.tryParse(record);
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('梅花易数 · ${record.algorithmLabel}'),
+        content: SizedBox(
+          width: 560,
+          child: SingleChildScrollView(
+            child: details == null
+                ? const Text('这条历史记录的数据不完整，无法恢复卦盘。原始摘要仍保留在历史列表中。')
+                : _MeihuaHistoryContent(details: details),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatTime(DateTime time) {
     return '${time.year}-${time.month.toString().padLeft(2, '0')}-'
         '${time.day.toString().padLeft(2, '0')} '
         '${time.hour.toString().padLeft(2, '0')}:'
         '${time.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _MeihuaHistoryContent extends StatelessWidget {
+  const _MeihuaHistoryContent({required this.details});
+
+  final MeihuaHistoryDetails details;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          details.methodLabel,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: AppTheme.space3),
+        _HistoricalHexagram(label: '本卦', value: details.original),
+        _HistoricalHexagram(label: '互卦', value: details.inter),
+        _HistoricalHexagram(label: '变卦', value: details.changed),
+        const Divider(height: AppTheme.space5),
+        Text('${details.movingLine.name}：${details.movingLine.text}'),
+        Text('体卦：${details.tiGua.name} · ${details.tiGua.element}'),
+        Text('用卦：${details.yongGua.name} · ${details.yongGua.element}'),
+        Text('体用关系：${details.relation}'),
+        if (details.consultationContext != null) ...[
+          const Divider(height: AppTheme.space5),
+          Text('占问背景', style: Theme.of(context).textTheme.titleMedium),
+          Text('分类：${details.consultationContext!.topicLabel}'),
+          if (details.consultationContext!.question.isNotEmpty)
+            Text('占问：${details.consultationContext!.question}'),
+          if (details.consultationContext!.observation.isNotEmpty)
+            Text('物象：${details.consultationContext!.observation}'),
+          if (details.consultationContext!.soundSource.isNotEmpty)
+            Text('声音来源：${details.consultationContext!.soundSource}'),
+          if (details.consultationContext!.directionNote.isNotEmpty)
+            Text('方位说明：${details.consultationContext!.directionNote}'),
+        ],
+        if (details.calculation['lunarYearGanzhi'] != null) ...[
+          const Divider(height: AppTheme.space5),
+          Text(
+            '农历${details.calculation['lunarYearGanzhi']}年 '
+            '${details.calculation['month']}月${details.calculation['day']}日 · '
+            '${details.calculation['timeZhi']}时',
+          ),
+          Text(
+            '上卦${details.calculation['upperTrigramIndex']}、'
+            '下卦${details.calculation['lowerTrigramIndex']}、'
+            '动爻${details.calculation['movingYaoIndex']}',
+          ),
+        ],
+        if (details.randomSamples.isNotEmpty) ...[
+          const Divider(height: AppTheme.space5),
+          Text('随机轨迹已保存：${details.randomSamples.length} 个样本'),
+        ],
+        if (details.interpretation != null) ...[
+          const Divider(height: AppTheme.space5),
+          Text(
+            '保存时的现代白话解读 · v${details.interpretation!.version}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppTheme.space2),
+          Text(
+            '问题回应（${details.interpretation!.questionIntentLabel}）：${details.interpretation!.directAnswer}',
+          ),
+          Text('判断依据：${details.interpretation!.evidenceSummary}'),
+          if (details.interpretation!.evidence.counterEvidence.isNotEmpty)
+            Text(
+              '反证：${details.interpretation!.evidence.counterEvidence.map((item) => item.detail).join('；')}',
+            ),
+          if (details.interpretation!.evidence.limitations.isNotEmpty)
+            Text(
+              '限制：${details.interpretation!.evidence.limitations.map((item) => item.detail).join('；')}',
+            ),
+          Text('传统概览：${details.interpretation!.traditionalOverview}'),
+          Text('当前处境：${details.interpretation!.situation}'),
+          Text('内部过程：${details.interpretation!.process}'),
+          Text('变化趋势：${details.interpretation!.trend}'),
+          Text(
+            '${details.interpretation!.topicLabel}提示：${details.interpretation!.topicGuidance}',
+          ),
+          Text('行动建议：${details.interpretation!.action}'),
+          Text('风险提醒：${details.interpretation!.riskReminder}'),
+        ],
+      ],
+    );
   }
 }
 
@@ -277,6 +423,12 @@ class _DailyHexagramHistoryContent extends StatelessWidget {
           const Divider(height: AppTheme.space5),
           Text('六爻：${details.yaos.join('、')}（初爻至上爻）'),
         ],
+        if (details.coinThrows.length == 6) ...[
+          const SizedBox(height: AppTheme.space2),
+          Text(
+            '三钱记录：${details.coinThrows.map((coins) => coins.join('+')).join('；')}',
+          ),
+        ],
         if (details.takingSummary != null) ...[
           const Divider(height: AppTheme.space5),
           Text('取用规则', style: Theme.of(context).textTheme.titleMedium),
@@ -291,6 +443,20 @@ class _DailyHexagramHistoryContent extends StatelessWidget {
           const SizedBox(height: AppTheme.space2),
           for (final line in details.movingLines)
             Text('${line.name} · ${line.type}：${line.text}'),
+        ],
+        if (details.interpretation != null) ...[
+          const Divider(height: AppTheme.space5),
+          Text(
+            '保存时的分项解读 · v${details.interpretation!.version}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppTheme.space2),
+          Text('传统概览：${details.interpretation!.traditionalOverview}'),
+          Text('当前处境：${details.interpretation!.situation}'),
+          Text('内在条件：${details.interpretation!.innerContext}'),
+          Text('变化趋势：${details.interpretation!.trend}'),
+          Text('行动节奏：${details.interpretation!.pace}'),
+          Text('风险提醒：${details.interpretation!.riskReminder}'),
         ],
       ],
     );

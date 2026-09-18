@@ -69,16 +69,37 @@ void main() {
         'changed': kun,
         'inter': qian,
         'yaos': [9, 9, 9, 9, 9, 9],
+        'coinThrows': List.generate(
+          6,
+          (_) => {
+            'coins': [3, 3, 3],
+            'total': 9,
+          },
+        ),
         'takingRule': {
           'summary': '六爻皆动，乾坤卦取用九或用六。',
           'primaryTexts': ['见群龙无首，吉'],
           'secondaryTexts': <String>[],
+        },
+        'interpretation': {
+          'id': 'daily-hexagram.local-reading',
+          'version': 1,
+          'traditionalOverview': '传统概览',
+          'situation': '当前处境',
+          'innerContext': '内在条件',
+          'trend': '变化趋势',
+          'pace': '行动节奏',
+          'riskReminder': '风险提醒',
         },
       }),
     );
 
     expect(details!.takingSummary, contains('用九或用六'));
     expect(details.primaryTexts, ['见群龙无首，吉']);
+    expect(details.coinThrows, hasLength(6));
+    expect(details.coinThrows.first, [3, 3, 3]);
+    expect(details.interpretation?.version, 1);
+    expect(details.interpretation?.trend, '变化趋势');
     expect(details.isLegacy, isFalse);
   });
 

@@ -119,5 +119,50 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('逐枚铜钱记录应原样保存并正确计算六爻', () {
+      final throws = [
+        const DailyHexagramCoinThrow(coins: [2, 2, 2], total: 6),
+        const DailyHexagramCoinThrow(coins: [3, 2, 2], total: 7),
+        const DailyHexagramCoinThrow(coins: [3, 3, 2], total: 8),
+        const DailyHexagramCoinThrow(coins: [3, 3, 3], total: 9),
+        const DailyHexagramCoinThrow(coins: [2, 3, 2], total: 7),
+        const DailyHexagramCoinThrow(coins: [2, 3, 3], total: 8),
+      ];
+      final result = DailyHexagramEngine.fromCoinThrows(throws);
+
+      expect(result.yaos.map((item) => item.value), [6, 7, 8, 9, 7, 8]);
+      expect(result.coinThrows[4].coins, [2, 3, 2]);
+      expect(result.toJson()['coinThrows'][4]['coins'], [2, 3, 2]);
+    });
+
+    test('逐枚铜钱必须每爻三枚、值为 2 或 3 且合计一致', () {
+      List<DailyHexagramCoinThrow> six(DailyHexagramCoinThrow first) => [
+        first,
+        ...List.generate(
+          5,
+          (_) => const DailyHexagramCoinThrow(coins: [3, 2, 2], total: 7),
+        ),
+      ];
+
+      expect(
+        () => DailyHexagramEngine.fromCoinThrows(
+          six(const DailyHexagramCoinThrow(coins: [2, 2], total: 4)),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => DailyHexagramEngine.fromCoinThrows(
+          six(const DailyHexagramCoinThrow(coins: [2, 3, 4], total: 9)),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => DailyHexagramEngine.fromCoinThrows(
+          six(const DailyHexagramCoinThrow(coins: [2, 2, 2], total: 7)),
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 }

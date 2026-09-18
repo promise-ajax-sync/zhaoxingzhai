@@ -1,0 +1,59 @@
+{
+  "_meta": {
+    "source": "mingyu 0.4.0 meihua core rules and upstream regression expectations",
+    "algorithmVersion": 1,
+    "scope": ["number", "random"],
+    "note": "时间统一使用 2025-01-01T08:00:00+08:00；数字法时支为辰（序5）"
+  },
+  "vectors": [
+    {
+      "caseId": "number-123",
+      "input": { "method": "number", "number": 123, "hourBranch": "辰" },
+      "expected": {
+        "upperTrigramIndex": 3,
+        "lowerTrigramIndex": 8,
+        "movingYaoIndex": 2,
+        "original": "火地晋",
+        "inter": "水山蹇",
+        "changed": "火水未济",
+        "tiGua": "离",
+        "yongGua": "坤",
+        "tiYongRaw": "体生用",
+        "movingYaoCi": "晋如愁如，贞吉"
+      }
+    },
+    {
+      "caseId": "number-1",
+      "input": { "method": "number", "number": 1, "hourBranch": "辰" },
+      "expected": {
+        "upperTrigramIndex": 1,
+        "lowerTrigramIndex": 6,
+        "movingYaoIndex": 6,
+        "original": "天水讼",
+        "inter": "风火家人",
+        "changed": "泽水困",
+        "tiGua": "坎",
+        "yongGua": "乾",
+        "tiYongRaw": "用生体",
+        "movingYaoCi": "或锡之鞶带，终朝三褫之"
+      }
+    },
+    {
+      "caseId": "random-fixed",
+      "input": { "method": "random", "seed": "梅花-golden-甲" },
+      "expected": {
+        "upperTrigramIndex": 2,
+        "lowerTrigramIndex": 4,
+        "movingYaoIndex": 5,
+        "original": "泽雷随",
+        "inter": "风山渐",
+        "changed": "震为雷",
+        "tiGua": "震",
+        "yongGua": "兑",
+        "tiYongRaw": "用克体",
+        "movingYaoCi": "孚于嘉，吉",
+        "randomSamples": [0.22237577801570296, 0.4237710405141115, 0.7350485443603247]
+      }
+    }
+  ]
+}

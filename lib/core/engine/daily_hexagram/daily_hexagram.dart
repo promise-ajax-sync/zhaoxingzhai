@@ -190,11 +190,31 @@ abstract final class DailyHexagramEngine {
     if (values.length != 6) {
       throw ArgumentError.value(values, 'values', '必须从初爻到上爻录入六个爻值');
     }
-    final throws = values.map(_canonicalThrow).toList(growable: false);
-    final now = date ?? DateTime.now();
+    return fromCoinThrows(
+      values.map(_canonicalThrow).toList(growable: false),
+      date: date,
+      caseKey: caseKey,
+    );
+  }
+
+  /// 根据真实的六组三钱记录构造卦象。每组严格包含三枚 2/3 铜钱，
+  /// 顺序为初爻到上爻；记录会原样写入结果和历史。
+  static DailyHexagramResult fromCoinThrows(
+    List<DailyHexagramCoinThrow> coinThrows, {
+    DateTime? date,
+    String? caseKey,
+  }) {
+    final copied = coinThrows
+        .map(
+          (item) => DailyHexagramCoinThrow(
+            coins: List<int>.unmodifiable(item.coins),
+            total: item.total,
+          ),
+        )
+        .toList(growable: false);
     return _build(
-      coinThrows: throws,
-      now: now,
+      coinThrows: copied,
+      now: date ?? DateTime.now(),
       caseKey: _normalizeCase(caseKey),
       randomTrace: const RandomTrace(
         mode: RandomMode.custom,

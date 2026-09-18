@@ -5,9 +5,11 @@ import 'package:zhaoxingzhai/app/app_sidebar.dart';
 import 'package:zhaoxingzhai/core/data/ssgw_data.dart';
 import 'package:zhaoxingzhai/core/data/tarot_data.dart';
 import 'package:zhaoxingzhai/core/data/hexagram_data.dart';
+import 'package:zhaoxingzhai/core/routing/divination_tool_router.dart';
 import 'package:zhaoxingzhai/features/cases/presentation/cases_page.dart';
 import 'package:zhaoxingzhai/features/daily_hexagram/presentation/daily_hexagram_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
+import 'package:zhaoxingzhai/features/meihua/presentation/meihua_page.dart';
 import 'package:zhaoxingzhai/features/oracle/presentation/oracle_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
 import 'package:zhaoxingzhai/features/xiaoliuren/presentation/xiaoliuren_page.dart';
@@ -58,6 +60,56 @@ void main() {
     expect(find.text('解读术数'), findsOneWidget);
     expect(find.text('功德箱'), findsOneWidget);
     expect(find.textContaining('写下问题，交给'), findsOneWidget);
+  });
+
+  testWidgets('首页根据地点问题推荐梅花易数', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: HomePage(onOpenFeature: (_) {})),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), '我会在哪里找到对象');
+    await tester.tap(find.byIcon(Icons.arrow_upward));
+    await tester.pump();
+
+    expect(find.text('推荐：梅花易数'), findsOneWidget);
+    expect(find.textContaining('地点、方位或时间线索'), findsOneWidget);
+    expect(find.text('进入梅花易数'), findsOneWidget);
+  });
+
+  testWidgets('首页路由问题可以自动带入梅花易数', (WidgetTester tester) async {
+    final draft = ValueNotifier<RoutedDivinationDraft?>(
+      RoutedDivinationDraft(question: '我会在哪里找到对象', tool: DivinationTool.meihua),
+    );
+    addTearDown(draft.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: MeihuaPage(routedDraft: draft)),
+      ),
+    );
+    await _pumpUntilFound(tester, find.text('占问背景（可选）'));
+
+    expect(find.text('我会在哪里找到对象'), findsOneWidget);
+    expect(find.text('感情关系'), findsOneWidget);
+  });
+
+  testWidgets('首页路由问题可以自动带入塔罗', (WidgetTester tester) async {
+    final draft = ValueNotifier<RoutedDivinationDraft?>(
+      RoutedDivinationDraft(question: '对方内心怎么想', tool: DivinationTool.tarot),
+    );
+    addTearDown(draft.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TarotPage(routedDraft: draft)),
+      ),
+    );
+    await _pumpUntilFound(tester, find.text('占问主题'));
+
+    expect(find.text('对方内心怎么想'), findsOneWidget);
+    expect(find.textContaining('当前分类：感情关系'), findsOneWidget);
   });
 
   testWidgets('宽屏下侧栏常驻并可进入小六壬', (WidgetTester tester) async {
@@ -139,7 +191,10 @@ void main() {
 
     expect(find.byType(OraclePage), findsOneWidget);
     expect(find.text('随机抽签'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '1');
+    await tester.enterText(
+      find.byKey(const ValueKey('ssgw-sign-number-input')),
+      '1',
+    );
     await tester.tap(find.text('查询签文'));
     await _pumpUntilFound(tester, find.text('第1签'));
 
@@ -154,6 +209,7 @@ void main() {
     await tester.tap(find.text('每日一卦'));
     await _pumpUntilFound(tester, find.byType(DailyHexagramPage));
     await _pumpUntilFound(tester, find.text('六爻记录'));
+    await _pumpUntilFound(tester, find.textContaining('本卦 ·'));
 
     expect(find.byType(DailyHexagramPage), findsOneWidget);
     expect(find.textContaining('通用日卦'), findsOneWidget);
@@ -161,6 +217,58 @@ void main() {
     expect(find.text('变卦'), findsOneWidget);
     expect(find.text('互卦'), findsOneWidget);
     expect(find.text('手动录入'), findsOneWidget);
+    expect(find.text('分项解读'), findsOneWidget);
+    expect(find.text('传统概览'), findsOneWidget);
+    expect(find.text('风险提醒'), findsOneWidget);
+  });
+
+  testWidgets('侧栏可以进入梅花易数并完成数字起卦', (WidgetTester tester) async {
+    await tester.runAsync(HexagramData.load);
+    await _pumpApp(tester, _wideSize);
+
+    await tester.tap(find.text('梅花易数').first);
+    await _pumpUntilFound(tester, find.byType(MeihuaPage));
+    await _pumpUntilFound(tester, find.text('开始起卦'));
+
+    expect(find.text('时间'), findsOneWidget);
+    expect(find.text('数字'), findsOneWidget);
+    expect(find.text('随机'), findsOneWidget);
+    await tester.tap(find.text('数字'));
+    await tester.pump();
+    await tester.tap(find.text('开始起卦'));
+    await _pumpUntilFound(tester, find.text('动爻与体用'));
+
+    expect(find.byType(MeihuaPage), findsOneWidget);
+    expect(find.text('火地晋'), findsOneWidget);
+    expect(find.text('水山蹇'), findsOneWidget);
+    expect(find.text('火水未济'), findsOneWidget);
+    expect(find.textContaining('体用关系：体生用'), findsOneWidget);
+    expect(find.text('现代白话解读'), findsOneWidget);
+    expect(find.text('行动建议'), findsOneWidget);
+    expect(find.text('风险提醒'), findsOneWidget);
+  });
+
+  testWidgets('每日一卦支持逐枚铜钱录入并播放成卦动画', (WidgetTester tester) async {
+    await tester.runAsync(HexagramData.load);
+    await _pumpApp(tester, _wideSize);
+    await tester.tap(find.text('每日一卦'));
+    await _pumpUntilFound(tester, find.byType(DailyHexagramPage));
+    await _pumpUntilFound(tester, find.text('六爻记录'));
+
+    await tester.tap(find.text('手动录入'));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('daily-coin-0-0')), findsOneWidget);
+    expect(find.text('3+2+2=7 · 少阳'), findsNWidgets(6));
+
+    await tester.tap(find.byKey(const ValueKey('daily-coin-0-0')));
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('2+2+2=6 · 老阴'), findsOneWidget);
+
+    await tester.tap(find.text('完成六爻并生成卦象'));
+    await tester.pump();
+    expect(find.textContaining('正在形成卦象'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.textContaining('本卦 ·'), findsOneWidget);
   });
 
   testWidgets('塔罗支持切换到手动录牌并校验完整输入', (WidgetTester tester) async {

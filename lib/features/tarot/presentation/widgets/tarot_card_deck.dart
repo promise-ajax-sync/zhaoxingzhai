@@ -75,6 +75,7 @@ class TarotCardDeck extends StatelessWidget {
             width: 200,
             height: 48,
             child: ElevatedButton.icon(
+              key: const ValueKey('tarot-draw-cards'),
               onPressed: isDrawing ? null : onDraw,
               icon: isDrawing
                   ? const SizedBox(

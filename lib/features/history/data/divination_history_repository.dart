@@ -4,10 +4,20 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
 import 'package:zhaoxingzhai/core/engine/daily_hexagram/daily_hexagram.dart';
+import 'package:zhaoxingzhai/core/engine/meihua/meihua_divination.dart';
+import 'package:zhaoxingzhai/core/interpretation/daily_hexagram_interpretation.dart';
+import 'package:zhaoxingzhai/core/interpretation/meihua_interpretation.dart';
+import 'package:zhaoxingzhai/core/models/meihua_consultation_context.dart';
+import 'package:zhaoxingzhai/core/models/divination_question.dart';
+import 'package:zhaoxingzhai/core/interpretation/ssgw_interpretation.dart';
+import 'package:zhaoxingzhai/core/interpretation/tarot_interpretation.dart';
+import 'package:zhaoxingzhai/core/interpretation/xiaoliuren_interpretation.dart';
 import 'package:zhaoxingzhai/core/engine/ssgw/ssgw_divination.dart';
 import 'package:zhaoxingzhai/core/models/case_profile.dart';
 import 'package:zhaoxingzhai/core/shared/result.dart';
 import 'package:zhaoxingzhai/core/engine/tarot/tarot_divination.dart';
+import 'package:zhaoxingzhai/core/ai/ai_interpretation_models.dart';
+import 'package:zhaoxingzhai/features/history/data/ai_interpretation_snapshot.dart';
 
 /// 一条占卜历史记录。
 ///
@@ -49,11 +59,15 @@ class DivinationHistoryRecord {
     'tarot' => '塔罗',
     'ssgw' => '灵签',
     'daily-hexagram' => '每日一卦',
+    'meihua' => '梅花易数',
     _ => type,
   };
 
   /// 算法身份，用于判断旧结果能否被当前实现 replay。
   String get algorithmLabel => '$algorithmId v$algorithmVersion';
+
+  AiInterpretationSnapshot? get aiInterpretation =>
+      AiInterpretationSnapshot.tryParse(payload['aiInterpretation']);
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -133,6 +147,17 @@ class DivinationHistoryRepository extends ChangeNotifier {
   bool get isLoaded => _isLoaded;
   String? get loadError => _loadError;
 
+  static String tarotRecordId(TarotDrawResult result) =>
+      'tarot:${result.timestamp.microsecondsSinceEpoch}';
+  static String xiaoliurenRecordId(XiaoliurenData result) => result.meta.resultId;
+  static String ssgwRecordId(SsgwResult result) =>
+      'ssgw:${result.timestamp.microsecondsSinceEpoch}';
+  static String dailyHexagramRecordId(DailyHexagramResult result) => result.isManual
+      ? 'daily-hexagram:manual:${result.generatedAt.microsecondsSinceEpoch}'
+      : 'daily-hexagram:${result.dateKey}:${result.caseKey ?? 'general'}';
+  static String meihuaRecordId(MeihuaResult result) =>
+      'meihua:${result.generatedAt.microsecondsSinceEpoch}:${result.method.name}';
+
   Future<void> ensureLoaded() => _loadFuture ??= _load();
 
   Future<void> _load() async {
@@ -170,7 +195,12 @@ class DivinationHistoryRepository extends ChangeNotifier {
   Future<void> addTarot(
     TarotDrawResult result, {
     CaseSnapshot? caseSnapshot,
+    DivinationQuestion? question,
   }) async {
+    final interpretation = TarotInterpretation.build(
+      result,
+      question: question,
+    );
     final previewCards = result.cards
         .take(3)
         .map((card) => '${card.position}：${card.name}${card.orientation}');
@@ -182,7 +212,7 @@ class DivinationHistoryRepository extends ChangeNotifier {
 
     await add(
       DivinationHistoryRecord(
-        id: 'tarot:${result.timestamp.microsecondsSinceEpoch}',
+        id: tarotRecordId(result),
         type: 'tarot',
         title: result.spreadName,
         summary: summary,
@@ -209,8 +239,11 @@ class DivinationHistoryRepository extends ChangeNotifier {
               )
               .toList(),
           'evidencePrompt': result.evidenceAnalysis.promptText,
+          if (question != null && question.rawText.isNotEmpty)
+            'question': question.toJson(),
           if (result.randomTrace != null)
             'randomTrace': result.randomTrace!.toJson(),
+          'interpretation': interpretation.toJson(),
         },
       ),
     );
@@ -219,10 +252,15 @@ class DivinationHistoryRepository extends ChangeNotifier {
   Future<void> addXiaoliuren(
     XiaoliurenData result, {
     CaseSnapshot? caseSnapshot,
+    DivinationQuestion? question,
   }) async {
+    final interpretation = XiaoliurenInterpretation.build(
+      result,
+      question: question,
+    );
     await add(
       DivinationHistoryRecord(
-        id: result.meta.resultId,
+        id: xiaoliurenRecordId(result),
         type: 'xiaoliuren',
         title: '${result.primary.name} · ${result.ruleLabel}',
         summary:
@@ -232,7 +270,12 @@ class DivinationHistoryRepository extends ChangeNotifier {
             '日宫 ${result.sequence['day']!.name}，'
             '时宫 ${result.sequence['hour']!.name}',
         createdAt: result.meta.calculatedAt.toLocal(),
-        payload: result.toJson(),
+        payload: {
+          ...result.toJson(),
+          if (question != null && question.rawText.isNotEmpty)
+            'question': question.toJson(),
+          'interpretation': interpretation.toJson(),
+        },
         algorithmId: result.meta.algorithm,
         algorithmVersion: result.meta.algorithmVersion,
         schemaVersion: result.meta.schemaVersion,
@@ -241,16 +284,29 @@ class DivinationHistoryRepository extends ChangeNotifier {
     );
   }
 
-  Future<void> addSsgw(SsgwResult result, {CaseSnapshot? caseSnapshot}) async {
+  Future<void> addSsgw(
+    SsgwResult result, {
+    CaseSnapshot? caseSnapshot,
+    DivinationQuestion? question,
+  }) async {
+    final interpretation = SsgwInterpretation.build(
+      result,
+      question: question,
+    );
     await add(
       DivinationHistoryRecord(
-        id: 'ssgw:${result.timestamp.microsecondsSinceEpoch}',
+        id: ssgwRecordId(result),
         type: 'ssgw',
         title: result.sign.title,
         summary:
             '第${result.sign.number}签 · ${result.sign.poem.replaceAll('\n', ' ')}',
         createdAt: result.timestamp,
-        payload: result.toJson(),
+        payload: {
+          ...result.toJson(),
+          if (question != null && question.rawText.isNotEmpty)
+            'question': question.toJson(),
+          'interpretation': interpretation.toJson(),
+        },
         algorithmId: result.algorithm.id,
         algorithmVersion: result.algorithm.version,
         schemaVersion: mingyuSchemaVersion,
@@ -262,19 +318,64 @@ class DivinationHistoryRepository extends ChangeNotifier {
   Future<void> addDailyHexagram(
     DailyHexagramResult result, {
     CaseSnapshot? caseSnapshot,
+    DivinationQuestion? question,
   }) async {
+    final interpretation = DailyHexagramInterpretation.build(
+      result,
+      question: question,
+    );
     await add(
       DivinationHistoryRecord(
-        id: result.isManual
-            ? 'daily-hexagram:manual:${result.generatedAt.microsecondsSinceEpoch}'
-            : 'daily-hexagram:${result.dateKey}:${result.caseKey ?? 'general'}',
+        id: dailyHexagramRecordId(result),
         type: 'daily-hexagram',
         title: '${result.original.symbol} ${result.original.name}',
         summary:
             '${result.dateKey}；变${result.changed.name}；互${result.inter.name}；'
             '${result.movingLines.length}个动爻',
         createdAt: result.generatedAt,
-        payload: result.toJson(),
+        payload: {
+          ...result.toJson(),
+          if (question != null && question.rawText.isNotEmpty)
+            'question': question.toJson(),
+          'interpretation': interpretation.toJson(),
+        },
+        algorithmId: result.algorithm.id,
+        algorithmVersion: result.algorithm.version,
+        schemaVersion: mingyuSchemaVersion,
+        caseSnapshot: caseSnapshot,
+      ),
+    );
+  }
+
+  Future<void> addMeihua(
+    MeihuaResult result, {
+    CaseSnapshot? caseSnapshot,
+    MeihuaConsultationContext? consultationContext,
+  }) async {
+    final interpretation = MeihuaInterpretation.build(
+      result,
+      topic: consultationContext?.topic ?? 'general',
+      question: DivinationQuestion.parse(
+        consultationContext?.question ?? '',
+        topic: consultationContext?.topic ?? 'general',
+      ),
+    );
+    await add(
+      DivinationHistoryRecord(
+        id: meihuaRecordId(result),
+        type: 'meihua',
+        title:
+            '${result.original.symbol} ${result.original.name} 之 ${result.changed.name}',
+        summary:
+            '${result.methodLabel}；互${result.inter.name}；${result.movingYaoName}；'
+            '体${result.tiGua.name}用${result.yongGua.name}，${result.tiYongRelation}',
+        createdAt: result.generatedAt,
+        payload: {
+          ...result.toJson(),
+          if (consultationContext != null && !consultationContext.isEmpty)
+            'consultationContext': consultationContext.toJson(),
+          'interpretation': interpretation.toJson(),
+        },
         algorithmId: result.algorithm.id,
         algorithmVersion: result.algorithm.version,
         schemaVersion: mingyuSchemaVersion,
@@ -292,6 +393,45 @@ class DivinationHistoryRepository extends ChangeNotifier {
     }
     await _persist();
     notifyListeners();
+  }
+
+  /// Attaches the latest AI response to an existing result without creating
+  /// a duplicate history entry. Safe for old records and missing IDs.
+  Future<bool> updateAiInterpretation(
+    String recordId,
+    AiInterpretationResponse response,
+    {
+    String answerStyle = 'balanced',
+  }
+  ) async {
+    await ensureLoaded();
+    final index = _records.indexWhere((record) => record.id == recordId);
+    if (index < 0) {
+      return false;
+    }
+    final record = _records[index];
+    final payload = <String, dynamic>{
+      ...record.payload,
+      'aiInterpretation': AiInterpretationSnapshot.fromResponse(
+        response,
+        answerStyle: answerStyle,
+      ).toJson(),
+    };
+    _records[index] = DivinationHistoryRecord(
+      id: record.id,
+      type: record.type,
+      title: record.title,
+      summary: record.summary,
+      createdAt: record.createdAt,
+      payload: payload,
+      algorithmId: record.algorithmId,
+      algorithmVersion: record.algorithmVersion,
+      schemaVersion: record.schemaVersion,
+      caseSnapshot: record.caseSnapshot,
+    );
+    await _persist();
+    notifyListeners();
+    return true;
   }
 
   Future<void> delete(String id) async {

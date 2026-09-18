@@ -4,4 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 仅用于本地 FastAPI 的 HTTP 联调；release 不启用明文流量。 -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

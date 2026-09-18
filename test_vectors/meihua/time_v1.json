@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "source": "mingyu 0.4.0 meihua regression: lunar year branch after Lichun and before Lunar New Year",
+    "algorithmId": "meihua.time",
+    "algorithmVersion": 1,
+    "timezone": "Asia/Shanghai"
+  },
+  "vectors": [
+    {
+      "caseId": "after-lichun-before-lunar-new-year-2024",
+      "input": { "civilDateTime": "2024-02-05T12:00:00" },
+      "expected": {
+        "lunarYearGanzhi": "癸卯",
+        "solarTermYearGanzhi": "甲辰",
+        "yearZhi": "卯",
+        "yearZhiIndex": 4,
+        "month": 12,
+        "day": 26,
+        "timeZhi": "午",
+        "timeZhiIndex": 7,
+        "upperTrigramIndex": 2,
+        "lowerTrigramIndex": 1,
+        "movingYaoIndex": 1,
+        "original": "泽天夬",
+        "changed": "泽风大过"
+      }
+    }
+  ]
+}

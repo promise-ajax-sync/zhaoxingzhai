@@ -1,3 +1,4 @@
+import 'package:zhaoxingzhai/core/interpretation/daily_hexagram_interpretation.dart';
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
 
 class HistoricalHexagramSnapshot {
@@ -67,10 +68,12 @@ class DailyHexagramHistoryDetails {
     required this.changed,
     required this.inter,
     required this.yaos,
+    required this.coinThrows,
     required this.movingLines,
     required this.takingSummary,
     required this.primaryTexts,
     required this.secondaryTexts,
+    required this.interpretation,
     required this.compatibilityNotice,
   });
 
@@ -80,10 +83,12 @@ class DailyHexagramHistoryDetails {
   final HistoricalHexagramSnapshot? changed;
   final HistoricalHexagramSnapshot? inter;
   final List<int> yaos;
+  final List<List<int>> coinThrows;
   final List<HistoricalMovingLine> movingLines;
   final String? takingSummary;
   final List<String> primaryTexts;
   final List<String> secondaryTexts;
+  final DailyHexagramInterpretation? interpretation;
   final String compatibilityNotice;
 
   bool get isLegacy => algorithmVersion < 3;
@@ -110,6 +115,25 @@ class DailyHexagramHistoryDetails {
               .whereType<HistoricalMovingLine>()
               .toList(growable: false)
         : const <HistoricalMovingLine>[];
+    final coinThrows = payload['coinThrows'] is List
+        ? (payload['coinThrows'] as List)
+              .whereType<Map>()
+              .map((raw) => Map<String, dynamic>.from(raw))
+              .map((item) => item['coins'])
+              .whereType<List>()
+              .map(
+                (coins) => coins
+                    .whereType<num>()
+                    .map((coin) => coin.toInt())
+                    .toList(growable: false),
+              )
+              .where(
+                (coins) =>
+                    coins.length == 3 &&
+                    coins.every((coin) => coin == 2 || coin == 3),
+              )
+              .toList(growable: false)
+        : const <List<int>>[];
     final takingRule = payload['takingRule'] is Map
         ? Map<String, dynamic>.from(payload['takingRule'] as Map)
         : const <String, dynamic>{};
@@ -132,12 +156,16 @@ class DailyHexagramHistoryDetails {
       changed: HistoricalHexagramSnapshot.tryParse(payload['changed']),
       inter: HistoricalHexagramSnapshot.tryParse(payload['inter']),
       yaos: yaos,
+      coinThrows: coinThrows,
       movingLines: movingLines,
       takingSummary: takingRule['summary'] is String
           ? takingRule['summary'] as String
           : null,
       primaryTexts: texts('primaryTexts'),
       secondaryTexts: texts('secondaryTexts'),
+      interpretation: DailyHexagramInterpretation.tryParse(
+        payload['interpretation'],
+      ),
       compatibilityNotice: notice,
     );
   }

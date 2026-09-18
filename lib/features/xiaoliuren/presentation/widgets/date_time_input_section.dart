@@ -196,6 +196,7 @@ class DateTimeInputSection extends StatelessWidget {
     final isEnabled = selectedDate != null;
     final theme = Theme.of(context);
     return ElevatedButton(
+      key: const ValueKey('xiaoliuren-calculate'),
       onPressed: isEnabled ? onCalculate : null,
       style: ElevatedButton.styleFrom(
         backgroundColor: theme.colorScheme.secondary,

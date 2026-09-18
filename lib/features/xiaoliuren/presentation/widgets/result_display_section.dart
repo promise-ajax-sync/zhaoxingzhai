@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/rules.dart';
+import 'package:zhaoxingzhai/core/interpretation/xiaoliuren_interpretation.dart';
+import 'package:zhaoxingzhai/core/models/divination_question.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 
 /// 结果展示区域
 class ResultDisplaySection extends StatelessWidget {
   final XiaoliurenData result;
   final VoidCallback onReset;
+  final DivinationQuestion? question;
 
   const ResultDisplaySection({
     super.key,
     required this.result,
     required this.onReset,
+    this.question,
   });
 
   @override
@@ -28,11 +32,69 @@ class ResultDisplaySection extends StatelessWidget {
 
         // 计算过程
         _buildCalculationProcess(context),
+        const SizedBox(height: 20),
+
+        _buildModernReading(context),
         const SizedBox(height: 32),
 
         // 重新占卜按钮
         _buildResetButton(context),
       ],
+    );
+  }
+
+  Widget _buildModernReading(BuildContext context) {
+    final reading = XiaoliurenInterpretation.build(result, question: question);
+    final sections = [
+      ('问题回应 · ${reading.questionIntentLabel}', reading.directAnswer),
+      ('整体说明', reading.overview),
+      ('月宫轨迹', reading.background),
+      ('日宫轨迹', reading.process),
+      ('当前落点', reading.outcome),
+      ('行动建议', reading.action),
+      ('风险提醒', reading.riskReminder),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color:
+            Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('现代白话解读', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          if (question != null && question!.rawText.isNotEmpty) ...[
+            Text('原问题：${question!.rawText}'),
+            const Divider(height: 24),
+          ],
+          for (var index = 0; index < sections.length; index++) ...[
+            Text(
+              sections[index].$1,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            Text(sections[index].$2),
+            if (index != sections.length - 1) const Divider(height: 24),
+          ],
+          const Divider(height: 24),
+          Text('判断依据', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 4),
+          Text(reading.evidence.summary),
+          const SizedBox(height: 8),
+          for (final item in reading.evidence.supportingEvidence)
+            Text('• ${item.label}：${item.detail}'),
+          const SizedBox(height: 8),
+          Text(
+            reading.evidence.limitations.map((item) => item.detail).join('；'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 

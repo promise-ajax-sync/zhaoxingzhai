@@ -2,8 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zhaoxingzhai/core/data/hexagram_data.dart';
+import 'package:zhaoxingzhai/core/engine/daily_hexagram/daily_hexagram.dart';
+import 'package:zhaoxingzhai/core/engine/meihua/meihua_divination.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
 import 'package:zhaoxingzhai/core/models/case_profile.dart';
+import 'package:zhaoxingzhai/core/ai/ai_interpretation_models.dart';
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
 
 void main() {
@@ -41,6 +45,47 @@ void main() {
 
     await reloaded.delete('test:1');
     expect(reloaded.records, isEmpty);
+
+    repository.dispose();
+    reloaded.dispose();
+  });
+
+  test('AI 解读更新原历史记录且不会新增重复记录', () async {
+    final repository = DivinationHistoryRepository();
+    await repository.add(
+      DivinationHistoryRecord(
+        id: 'test:ai',
+        type: 'tarot',
+        title: '单牌指引',
+        summary: '测试记录',
+        createdAt: DateTime(2026, 9, 18),
+        payload: const {'spreadType': 'single'},
+        algorithmId: 'tarot',
+        algorithmVersion: 1,
+        schemaVersion: '1.0.0',
+      ),
+    );
+
+    final updated = await repository.updateAiInterpretation(
+      'test:ai',
+      AiInterpretationResponse(
+        content: '先完成一个可验证的小步骤。',
+        source: AiAnswerSource.remote,
+        providerId: 'test-provider',
+        modelId: 'test-model',
+        promptVersion: 2,
+        generatedAt: DateTime.utc(2026, 9, 18),
+        evidenceMethodId: 'tarot',
+      ),
+    );
+
+    expect(updated, isTrue);
+    expect(repository.records, hasLength(1));
+    expect(repository.records.single.aiInterpretation?.modelId, 'test-model');
+
+    final reloaded = DivinationHistoryRepository();
+    await reloaded.ensureLoaded();
+    expect(reloaded.records.single.aiInterpretation?.content, contains('可验证'));
 
     repository.dispose();
     reloaded.dispose();
@@ -110,6 +155,59 @@ void main() {
     repository.dispose();
   });
 
+  test('每日一卦历史保存当时生成的分项解读版本和内容', () async {
+    await HexagramData.load();
+    final repository = DivinationHistoryRepository();
+    final result = DailyHexagramEngine.fromYaoValues([
+      6,
+      7,
+      7,
+      7,
+      7,
+      7,
+    ], date: DateTime(2026, 9, 18));
+
+    await repository.addDailyHexagram(result);
+
+    final interpretation = repository.records.single.payload['interpretation'];
+    expect(interpretation, isA<Map>());
+    expect(interpretation['id'], 'daily-hexagram.local-reading');
+    expect(interpretation['version'], 2);
+    expect(interpretation['traditionalOverview'], contains('天风姤'));
+    expect(interpretation['riskReminder'], isNotEmpty);
+
+    repository.dispose();
+  });
+
+  test('梅花易数历史保存完整卦盘、体用与算法版本', () async {
+    await HexagramData.load();
+    final repository = DivinationHistoryRepository();
+    final result = MeihuaDivination.number(number: 123, hourBranch: '辰');
+
+    await repository.addMeihua(result);
+
+    final record = repository.records.single;
+    expect(record.type, 'meihua');
+    expect(record.algorithmId, 'meihua');
+    expect(record.algorithmVersion, 1);
+    expect(record.payload['original']['name'], '火地晋');
+    expect(record.payload['inter']['name'], '水山蹇');
+    expect(record.payload['changed']['name'], '火水未济');
+    expect(record.payload['movingYao']['position'], 2);
+    expect(record.payload['tiYongRelation'], '体生用');
+    expect(record.payload['interpretation']['id'], 'meihua.local-reading');
+    expect(record.payload['interpretation']['version'], 4);
+    expect(record.payload['interpretation']['evidence']['methodId'], 'meihua');
+    expect(
+      record.payload['interpretation']['evidence']['limitations'],
+      isNotEmpty,
+    );
+    expect(record.payload['interpretation']['topic'], 'general');
+    expect(record.payload['interpretation']['topicLabel'], '综合事项');
+
+    repository.dispose();
+  });
+
   test('未指定案例时历史记录没有快照', () async {
     final repository = DivinationHistoryRepository();
     final result = generateXiaoliuren(customDate: DateTime(2026, 9, 17, 12));
@@ -169,10 +267,7 @@ void main() {
     );
 
     expect(base.toSnapshot().stableHash, isNotEmpty);
-    expect(
-      base.toSnapshot().stableHash,
-      base.toSnapshot().stableHash,
-    );
+    expect(base.toSnapshot().stableHash, base.toSnapshot().stableHash);
     expect(
       base.toSnapshot().stableHash,
       isNot(

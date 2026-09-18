@@ -60,4 +60,32 @@ abstract final class AlgorithmCatalog {
     version: 3,
     ruleset: 'three-coins-six-lines-taking-rules-v1',
   );
+
+  static const meihua = AlgorithmDescriptor(
+    id: 'meihua',
+    version: 1,
+    ruleset: 'shaoshi-number-random-core-v1',
+  );
+
+  static const meihuaTime = AlgorithmDescriptor(
+    id: 'meihua.time',
+    version: 1,
+    ruleset: 'lunar-year-month-day-china-civil-hour-v1',
+  );
+
+  static const meihuaSound = AlgorithmDescriptor(
+    id: 'meihua.sound',
+    version: 1,
+    ruleset: 'sound-count-hour-branch-v1',
+  );
+  static const meihuaCharacter = AlgorithmDescriptor(
+    id: 'meihua.character',
+    version: 1,
+    ruleset: 'character-segmentation-v1',
+  );
+  static const meihuaDirection = AlgorithmDescriptor(
+    id: 'meihua.direction',
+    version: 1,
+    ruleset: 'direction-object-hour-branch-v1',
+  );
 }

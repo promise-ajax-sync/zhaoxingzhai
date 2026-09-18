@@ -4,7 +4,9 @@ import 'package:zhaoxingzhai/app/app_sidebar.dart';
 import 'package:zhaoxingzhai/app/app_topbar.dart';
 import 'package:zhaoxingzhai/app/app_view.dart';
 import 'package:zhaoxingzhai/app/placeholder_page.dart';
+import 'package:zhaoxingzhai/core/ai/ai_service_factory.dart';
 import 'package:zhaoxingzhai/core/models/answer_preference.dart';
+import 'package:zhaoxingzhai/core/routing/divination_tool_router.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 import 'package:zhaoxingzhai/features/cases/case_selection.dart';
 import 'package:zhaoxingzhai/features/cases/data/case_repository.dart';
@@ -13,6 +15,7 @@ import 'package:zhaoxingzhai/features/daily_hexagram/presentation/daily_hexagram
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
 import 'package:zhaoxingzhai/features/history/presentation/history_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
+import 'package:zhaoxingzhai/features/meihua/presentation/meihua_page.dart';
 import 'package:zhaoxingzhai/features/oracle/presentation/oracle_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
 import 'package:zhaoxingzhai/features/xiaoliuren/presentation/xiaoliuren_page.dart';
@@ -33,36 +36,105 @@ class _AppShellState extends State<AppShell> {
   final Set<AppView> _visitedViews = {AppView.tools};
   AnswerPreference _preference = AnswerPreference.chat;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final ValueNotifier<RoutedDivinationDraft?> _routedDraft = ValueNotifier(
+    null,
+  );
 
   late final DivinationHistoryRepository _historyRepository;
   late final CaseRepository _caseRepository;
   late final CaseSelectionController _caseSelection;
+  late final AiServiceBundle _aiServiceBundle = AiServiceFactory.create();
 
   /// 已接入真实实现的入口；未列入的一律走占位页。
   late final Map<AppView, Widget> _implemented = {
-    AppView.tools: HomePage(onOpenFeature: _open),
-    AppView.xiaoliuren: XiaoliurenPage(
-      onResult: (result) => _historyRepository.addXiaoliuren(
+    AppView.tools: HomePage(
+      onOpenFeature: _open,
+      onOpenRoutedQuestion: _openRoutedQuestion,
+    ),
+    AppView.charts: MeihuaPage(
+      routedDraft: _routedDraft,
+      aiService: _aiServiceBundle.service,
+      answerStyle: () => _preference.id,
+      onAiResponse: (result, response) async {
+        await _historyRepository.updateAiInterpretation(
+          DivinationHistoryRepository.meihuaRecordId(result),
+          response,
+          answerStyle: _preference.id,
+        );
+      },
+      onResultWithContext: (result, context) => _historyRepository.addMeihua(
         result,
+        consultationContext: context,
+        caseSnapshot: _caseSelection.currentSnapshot,
+      ),
+    ),
+    AppView.xiaoliuren: XiaoliurenPage(
+      routedDraft: _routedDraft,
+      aiService: _aiServiceBundle.service,
+      answerStyle: () => _preference.id,
+      onAiResponse: (result, response) async {
+        await _historyRepository.updateAiInterpretation(
+          DivinationHistoryRepository.xiaoliurenRecordId(result),
+          response,
+          answerStyle: _preference.id,
+        );
+      },
+      onResultWithQuestion: (result, question) => _historyRepository.addXiaoliuren(
+        result,
+        question: question,
         caseSnapshot: _caseSelection.currentSnapshot,
       ),
     ),
     AppView.oracle: OraclePage(
-      onResult: (result) => _historyRepository.addSsgw(
+      routedDraft: _routedDraft,
+      aiService: _aiServiceBundle.service,
+      answerStyle: () => _preference.id,
+      onAiResponse: (result, response) async {
+        await _historyRepository.updateAiInterpretation(
+          DivinationHistoryRepository.ssgwRecordId(result),
+          response,
+          answerStyle: _preference.id,
+        );
+      },
+      onResultWithQuestion: (result, question) => _historyRepository.addSsgw(
         result,
+        question: question,
         caseSnapshot: _caseSelection.currentSnapshot,
       ),
     ),
     AppView.dailyHexagram: DailyHexagramPage(
+      routedDraft: _routedDraft,
+      aiService: _aiServiceBundle.service,
+      answerStyle: () => _preference.id,
+      onAiResponse: (result, response) async {
+        await _historyRepository.updateAiInterpretation(
+          DivinationHistoryRepository.dailyHexagramRecordId(result),
+          response,
+          answerStyle: _preference.id,
+        );
+      },
       currentCase: () => _caseSelection.currentSnapshot,
-      onResult: (result) => _historyRepository.addDailyHexagram(
+      onResultWithQuestion: (result, question) =>
+          _historyRepository.addDailyHexagram(
         result,
+        question: question,
         caseSnapshot: _caseSelection.currentSnapshot,
       ),
     ),
     AppView.tarot: TarotPage(
-      onResult: (result) => _historyRepository.addTarot(
+      routedDraft: _routedDraft,
+      aiService: _aiServiceBundle.service,
+      answerStyle: () => _preference.id,
+      onAiResponse: (result, response) async {
+        await _historyRepository.updateAiInterpretation(
+          DivinationHistoryRepository.tarotRecordId(result),
+          response,
+          answerStyle: _preference.id,
+        );
+      },
+      onResultWithQuestion: (result, question) => _historyRepository.addTarot(
         result,
+        question: question,
         caseSnapshot: _caseSelection.currentSnapshot,
       ),
     ),
@@ -85,6 +157,8 @@ class _AppShellState extends State<AppShell> {
     _caseSelection.dispose();
     _caseRepository.dispose();
     _historyRepository.dispose();
+    _aiServiceBundle.dispose();
+    _routedDraft.dispose();
     super.dispose();
   }
 
@@ -93,6 +167,17 @@ class _AppShellState extends State<AppShell> {
     setState(() {
       _visitedViews.add(view);
       _view = view;
+    });
+  }
+
+  void _openRoutedQuestion(String question, DivinationTool tool) {
+    _routedDraft.value = RoutedDivinationDraft(question: question, tool: tool);
+    _open(switch (tool) {
+      DivinationTool.meihua => AppView.charts,
+      DivinationTool.tarot => AppView.tarot,
+      DivinationTool.xiaoliuren => AppView.xiaoliuren,
+      DivinationTool.ssgw => AppView.oracle,
+      DivinationTool.dailyHexagram => AppView.dailyHexagram,
     });
   }
 

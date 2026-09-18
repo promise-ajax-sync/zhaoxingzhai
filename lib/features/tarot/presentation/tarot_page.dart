@@ -2,11 +2,18 @@
 /// 参考 SYDF TarotView.vue
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:zhaoxingzhai/core/ai/ai_interpretation_models.dart';
+import 'package:zhaoxingzhai/core/ai/ai_interpretation_service.dart';
+import 'package:zhaoxingzhai/core/interpretation/tarot_interpretation.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 import 'package:zhaoxingzhai/core/widgets/app_widgets.dart';
+import 'package:zhaoxingzhai/core/widgets/ai_interpretation_card.dart';
 import 'package:zhaoxingzhai/core/data/tarot_data.dart' as tarot_loader;
 import 'package:zhaoxingzhai/core/engine/tarot/tarot_divination.dart';
+import 'package:zhaoxingzhai/core/models/divination_question.dart';
+import 'package:zhaoxingzhai/core/routing/divination_tool_router.dart';
 
 import 'widgets/tarot_spread_selector.dart';
 import 'widgets/tarot_card_deck.dart';
@@ -18,8 +25,26 @@ enum _TarotInputMode { automatic, manual }
 class TarotPage extends StatefulWidget {
   final Future<void> Function()? loadData;
   final Future<void> Function(TarotDrawResult)? onResult;
+  final Future<void> Function(TarotDrawResult, DivinationQuestion)?
+  onResultWithQuestion;
+  final ValueListenable<RoutedDivinationDraft?>? routedDraft;
+  final AiInterpretationService? aiService;
+  final String Function()? answerStyle;
+  final Future<void> Function(
+    TarotDrawResult result,
+    AiInterpretationResponse response,
+  )? onAiResponse;
 
-  const TarotPage({super.key, this.loadData, this.onResult});
+  const TarotPage({
+    super.key,
+    this.loadData,
+    this.onResult,
+    this.onResultWithQuestion,
+    this.routedDraft,
+    this.aiService,
+    this.answerStyle,
+    this.onAiResponse,
+  });
 
   @override
   State<TarotPage> createState() => _TarotPageState();
@@ -32,12 +57,62 @@ class _TarotPageState extends State<TarotPage> {
   String _selectedSpread = 'single';
   _TarotInputMode _inputMode = _TarotInputMode.automatic;
   TarotDrawResult? _result;
+  final _questionController = TextEditingController();
+  String _topic = 'general';
+  RoutedDivinationDraft? _lastRoutedDraft;
+  bool _aiLoading = false;
+  AiInterpretationResponse? _aiResponse;
+  Object? _aiError;
+  int _aiRequestGeneration = 0;
 
   @override
   void initState() {
     super.initState();
+    _applyRoutedDraft(widget.routedDraft?.value, notify: false);
+    widget.routedDraft?.addListener(_onRoutedDraftChanged);
     _initTarot();
   }
+
+  @override
+  void didUpdateWidget(covariant TarotPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.routedDraft != widget.routedDraft) {
+      oldWidget.routedDraft?.removeListener(_onRoutedDraftChanged);
+      widget.routedDraft?.addListener(_onRoutedDraftChanged);
+      _applyRoutedDraft(widget.routedDraft?.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.routedDraft?.removeListener(_onRoutedDraftChanged);
+    _questionController.dispose();
+    super.dispose();
+  }
+
+  void _onRoutedDraftChanged() => _applyRoutedDraft(widget.routedDraft?.value);
+
+  void _applyRoutedDraft(RoutedDivinationDraft? draft, {bool notify = true}) {
+    if (draft == null ||
+        draft.tool != DivinationTool.tarot ||
+        identical(draft, _lastRoutedDraft)) {
+      return;
+    }
+    _lastRoutedDraft = draft;
+    void apply() {
+      _questionController.text = draft.question;
+      _topic = DivinationQuestion.inferTopic(draft.question);
+    }
+
+    if (notify && mounted) {
+      setState(apply);
+    } else {
+      apply();
+    }
+  }
+
+  DivinationQuestion get _question =>
+      DivinationQuestion.parse(_questionController.text.trim(), topic: _topic);
 
   Future<void> _initTarot() async {
     if (!_isLoading || _loadError != null) {
@@ -67,6 +142,7 @@ class _TarotPageState extends State<TarotPage> {
     setState(() {
       _isDrawing = true;
       _result = null;
+      _clearAiReading();
     });
 
     // 动画延迟
@@ -97,6 +173,7 @@ class _TarotPageState extends State<TarotPage> {
     setState(() {
       _isDrawing = true;
       _result = null;
+      _clearAiReading();
     });
 
     try {
@@ -118,12 +195,62 @@ class _TarotPageState extends State<TarotPage> {
   void _reset() {
     setState(() {
       _result = null;
+      _clearAiReading();
     });
+  }
+
+  void _clearAiReading() {
+    _aiRequestGeneration++;
+    _aiLoading = false;
+    _aiResponse = null;
+    _aiError = null;
+  }
+
+  Future<void> _requestAiReading() async {
+    final result = _result;
+    final service = widget.aiService;
+    if (result == null || service == null) {
+      return;
+    }
+    final question = _question;
+    final reading = TarotInterpretation.build(result, question: question);
+    final generation = ++_aiRequestGeneration;
+    setState(() {
+      _aiLoading = true;
+      _aiError = null;
+    });
+    try {
+      final response = await service.interpret(
+        AiInterpretationRequest(
+          question: question,
+          evidence: reading.evidence,
+          localAnswer: reading.directAnswer,
+          methodLabel: '塔罗',
+          answerStyle: widget.answerStyle?.call() ?? 'balanced',
+        ),
+      );
+      if (mounted && generation == _aiRequestGeneration) {
+        setState(() => _aiResponse = response);
+        await widget.onAiResponse?.call(result, response);
+      }
+    } catch (error) {
+      if (mounted && generation == _aiRequestGeneration) {
+        setState(() => _aiError = error);
+      }
+    } finally {
+      if (mounted && generation == _aiRequestGeneration) {
+        setState(() => _aiLoading = false);
+      }
+    }
   }
 
   Future<void> _saveResult(TarotDrawResult result) async {
     try {
-      await widget.onResult?.call(result);
+      if (widget.onResultWithQuestion != null) {
+        await widget.onResultWithQuestion!(result, _question);
+      } else {
+        await widget.onResult?.call(result);
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -154,6 +281,24 @@ class _TarotPageState extends State<TarotPage> {
                         )
                       : null,
                 ),
+
+                AppCard(
+                  child: TextField(
+                    key: const ValueKey('tarot-question-input'),
+                    controller: _questionController,
+                    onChanged: (value) => setState(() {
+                      _topic = DivinationQuestion.inferTopic(value);
+                    }),
+                    decoration: InputDecoration(
+                      labelText: '占问主题',
+                      hintText: '写下希望牌阵重点回应的问题',
+                      helperText: '当前分类：${_topicLabel(_topic)}',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: AppTheme.space4),
 
                 // 如果还没有结果，显示抽牌界面
                 if (_result == null) ...[
@@ -226,11 +371,35 @@ class _TarotPageState extends State<TarotPage> {
                 ],
 
                 // 如果有结果，显示结果
-                if (_result != null) ...[TarotResultDisplay(result: _result!)],
+                if (_result != null) ...[
+                  TarotResultDisplay(result: _result!, question: _question),
+                  if (widget.aiService != null) ...[
+                    const AppSectionHeading(title: 'AI 深度解读'),
+                    AiInterpretationCard(
+                      response: _aiResponse,
+                      loading: _aiLoading,
+                      error: _aiError,
+                      onRequest: _requestAiReading,
+                      loadingText: '正在结合问题、牌阵、牌位和正逆位生成解读…',
+                      idleText: 'AI 将使用当前问题和已抽取的牌阵证据继续解读，不会重新抽牌。',
+                      actionKey: const ValueKey('tarot-ai-reading'),
+                    ),
+                    const SizedBox(height: AppTheme.space5),
+                  ],
+                ],
               ],
             ),
           );
   }
+
+  static String _topicLabel(String topic) => switch (topic) {
+    'relationship' => '感情关系',
+    'career' => '事业工作',
+    'wealth' => '财运经营',
+    'health' => '健康状态',
+    'study' => '学业考试',
+    _ => '综合事项',
+  };
 
   Widget _buildLoadError(BuildContext context) {
     return AppPageContainer(

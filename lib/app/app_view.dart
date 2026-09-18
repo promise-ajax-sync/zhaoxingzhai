@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 /// 尚未实现数据的入口统一渲染占位页（见 [PlaceholderPage]）。
 enum AppView {
   tools('首页', Icons.grid_view_outlined, Icons.grid_view),
-  charts('排盘', Icons.grid_on_outlined, Icons.grid_on),
+  charts('梅花易数', Icons.filter_vintage_outlined, Icons.filter_vintage),
   compatibility('合盘', Icons.favorite_border, Icons.favorite),
   oracle('灵签', Icons.article_outlined, Icons.article),
   xiaoliuren('小六壬', Icons.nightlight_outlined, Icons.nightlight),

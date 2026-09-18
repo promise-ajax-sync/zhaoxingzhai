@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 
 import 'package:zhaoxingzhai/app/app_view.dart';
+import 'package:zhaoxingzhai/core/routing/divination_tool_router.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 
 /// 首页（对话优先）。
 ///
 /// 对齐参考实现的默认态：今日运势条 → 品牌 hero → 输入区 → 免责声明。
-/// 对话与会话列表尚未接入，输入区目前只接收问题并在本地回显。
+/// 对话与会话列表尚未接入；输入区先通过本地高置信度规则推荐术式。
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.onOpenFeature});
+  const HomePage({
+    super.key,
+    required this.onOpenFeature,
+    this.onOpenRoutedQuestion,
+  });
 
   final ValueChanged<AppView> onOpenFeature;
+  final void Function(String question, DivinationTool tool)?
+  onOpenRoutedQuestion;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -19,6 +26,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _controller = TextEditingController();
   String _tool = '梅花易数';
+  DivinationToolSelection? _selection;
 
   @override
   void dispose() {
@@ -28,13 +36,24 @@ class _HomePageState extends State<HomePage> {
 
   void _submit() {
     final question = _controller.text.trim();
-    if (question.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('已记录问题：$question（对话能力尚未接入）'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (question.isEmpty) {
+      return;
+    }
+    final selection = DivinationToolRouter.select(question);
+    setState(() {
+      _selection = selection;
+      if (selection != null) {
+        _tool = selection.tool.label;
+      }
+    });
+    if (selection == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('暂时无法高置信度判断适合的术式，请补充时间范围、问题重点，或手动选择。'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -45,9 +64,7 @@ class _HomePageState extends State<HomePage> {
         return SingleChildScrollView(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: AppTheme.pageContent,
-              ),
+              constraints: const BoxConstraints(maxWidth: AppTheme.pageContent),
               child: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: wide ? AppTheme.space6 : AppTheme.space4,
@@ -56,7 +73,9 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _FortuneStrip(onTap: () => widget.onOpenFeature(AppView.fortune)),
+                    _FortuneStrip(
+                      onTap: () => widget.onOpenFeature(AppView.fortune),
+                    ),
                     SizedBox(height: wide ? AppTheme.space9 : AppTheme.space7),
                     _Hero(onOpenMeritBox: () {}),
                     SizedBox(height: wide ? AppTheme.space8 : AppTheme.space7),
@@ -66,9 +85,27 @@ class _HomePageState extends State<HomePage> {
                       onToolChanged: (value) => setState(() => _tool = value),
                       onSubmit: _submit,
                     ),
+                    if (_selection != null) ...[
+                      const SizedBox(height: AppTheme.space4),
+                      _ToolRecommendation(
+                        selection: _selection!,
+                        onOpen: () {
+                          final selection = _selection!;
+                          final question = _controller.text.trim();
+                          if (widget.onOpenRoutedQuestion != null) {
+                            widget.onOpenRoutedQuestion!(
+                              question,
+                              selection.tool,
+                            );
+                          } else {
+                            widget.onOpenFeature(_viewForTool(selection.tool));
+                          }
+                        },
+                      ),
+                    ],
                     const SizedBox(height: AppTheme.space5),
                     Text(
-                      '生成内容完全基于 AI 模型的胡言乱语，不构成任何形式建议',
+                      '当前仅提供本地术式推荐与传统模型解释，不构成医疗、法律或财务建议',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 11,
@@ -84,6 +121,48 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
+  static AppView _viewForTool(DivinationTool tool) => switch (tool) {
+    DivinationTool.meihua => AppView.charts,
+    DivinationTool.tarot => AppView.tarot,
+    DivinationTool.xiaoliuren => AppView.xiaoliuren,
+    DivinationTool.ssgw => AppView.oracle,
+    DivinationTool.dailyHexagram => AppView.dailyHexagram,
+  };
+}
+
+class _ToolRecommendation extends StatelessWidget {
+  const _ToolRecommendation({required this.selection, required this.onOpen});
+
+  final DivinationToolSelection selection;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(AppTheme.space4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '推荐：${selection.tool.label}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppTheme.space2),
+          Text(selection.reason),
+          const SizedBox(height: AppTheme.space3),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: onOpen,
+              icon: const Icon(Icons.arrow_forward),
+              label: Text('进入${selection.tool.label}'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// 今日运势条：图标 + 标题 + 摘要 + 色点 + 箭头。
@@ -254,9 +333,7 @@ class _Hero extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTheme.radiusRound),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.32),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.32)),
                 boxShadow: [
                   BoxShadow(
                     color: AppTheme.themeShadow(context),
