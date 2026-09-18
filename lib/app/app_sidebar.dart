@@ -90,31 +90,17 @@ class _SidebarHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final gradient = AppTheme.heroGradient(context);
 
     return Row(
       children: [
-        // 品牌标识：参考实现用的是图片 logo，这里先用主题渐变底 + 首字，
-        // 避免引入尚未迁移的位图资产（见 xiugai.md A15）。
-        Container(
-          width: 38,
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            gradient: LinearGradient(
-              colors: gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: const Text(
-            '兆',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
+        // 品牌标识：使用项目 logo 图片。
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          child: Image.asset(
+            'assets/images/logo.png',
+            width: 38,
+            height: 38,
+            fit: BoxFit.cover,
           ),
         ),
         const SizedBox(width: AppTheme.space3),
@@ -124,7 +110,7 @@ class _SidebarHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '兆星斋',
+                '小兆星爻屋',
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,

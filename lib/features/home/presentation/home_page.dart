@@ -284,12 +284,13 @@ class _Hero extends StatelessWidget {
               ),
             ],
           ),
-          child: const Text(
-            '兆',
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            child: Image.asset(
+              'assets/images/logo.png',
+              width: 62,
+              height: 62,
+              fit: BoxFit.cover,
             ),
           ),
         ),
