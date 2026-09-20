@@ -76,7 +76,7 @@ class CaseSnapshot {
 
   bool get hasLocation => longitude != null && latitude != null;
 
-  String get displayName => name.trim().isEmpty ? '未命名案例' : name;
+  String get displayName => name.trim().isEmpty ? '未命名角色' : name;
 
   /// 案例资料签名，用于排盘缓存失效与结果身份。
   ///
@@ -101,12 +101,15 @@ class CaseSnapshot {
     return CaseSnapshot(
       caseId: json['caseId'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      gender: CaseGender.values.asNameMap()[json['gender']] ??
+      gender:
+          CaseGender.values.asNameMap()[json['gender']] ??
           CaseGender.unspecified,
-      calendarType: CaseCalendarType.values.asNameMap()[json['calendarType']] ??
+      calendarType:
+          CaseCalendarType.values.asNameMap()[json['calendarType']] ??
           CaseCalendarType.solar,
-      birthDateTime:
-          birth == null ? DateTime.fromMillisecondsSinceEpoch(0) : DateTime.parse(birth),
+      birthDateTime: birth == null
+          ? DateTime.fromMillisecondsSinceEpoch(0)
+          : DateTime.parse(birth),
       isLeapMonth: json['isLeapMonth'] as bool? ?? false,
       timezoneId: json['timezoneId'] as String? ?? defaultTimezoneId,
       longitude: (json['longitude'] as num?)?.toDouble(),
@@ -280,11 +283,11 @@ class CaseProfile {
   factory CaseProfile.fromJson(Map<String, dynamic> json) {
     final name = json['name'] as String?;
     if (name == null || name.trim().isEmpty) {
-      throw const FormatException('案例缺少姓名');
+      throw const FormatException('角色缺少姓名');
     }
     final birth = json['birthDateTime'] as String?;
     if (birth == null) {
-      throw const FormatException('案例缺少出生时间');
+      throw const FormatException('角色缺少出生时间');
     }
     final createdAtRaw = json['createdAt'] as String?;
     final updatedAtRaw = json['updatedAt'] as String?;
@@ -295,19 +298,24 @@ class CaseProfile {
     return CaseProfile(
       id: json['id'] as String? ?? 'case:unknown',
       name: name,
-      gender: CaseGender.values.asNameMap()[json['gender']] ??
+      gender:
+          CaseGender.values.asNameMap()[json['gender']] ??
           CaseGender.unspecified,
-      calendarType: CaseCalendarType.values.asNameMap()[json['calendarType']] ??
+      calendarType:
+          CaseCalendarType.values.asNameMap()[json['calendarType']] ??
           CaseCalendarType.solar,
       birthDateTime: DateTime.parse(birth),
       isLeapMonth: json['isLeapMonth'] as bool? ?? false,
-      timezoneId: json['timezoneId'] as String? ?? CaseSnapshot.defaultTimezoneId,
+      timezoneId:
+          json['timezoneId'] as String? ?? CaseSnapshot.defaultTimezoneId,
       longitude: (json['longitude'] as num?)?.toDouble(),
       latitude: (json['latitude'] as num?)?.toDouble(),
       placeName: json['placeName'] as String?,
       note: json['note'] as String? ?? '',
       createdAt: createdAt,
-      updatedAt: updatedAtRaw == null ? createdAt : DateTime.parse(updatedAtRaw),
+      updatedAt: updatedAtRaw == null
+          ? createdAt
+          : DateTime.parse(updatedAtRaw),
     );
   }
 }

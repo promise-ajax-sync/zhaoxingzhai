@@ -47,7 +47,7 @@ fs.writeFileSync(
   outputPath,
   `${JSON.stringify({
     source: 'mingyu/packages/core/src/divination/tarot.ts#drawSpreadCards',
-    mingyuVersion: mingyuPackage.version,
+    sourceVersion: mingyuPackage.version,
     algorithmVersion: 1,
     randomAlgorithmId: 'fnv1a32-mulberry32',
     randomAlgorithmVersion: 2,

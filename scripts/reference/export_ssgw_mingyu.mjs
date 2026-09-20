@@ -50,7 +50,7 @@ fs.writeFileSync(
   outputPath,
   `${JSON.stringify({
     source: 'mingyu ssgw-data + shared/random (equivalent to drawRandomSign selection)',
-    mingyuVersion: mingyuPackage.version,
+    sourceVersion: mingyuPackage.version,
     algorithmVersion: 1,
     randomAlgorithmId: 'fnv1a32-mulberry32',
     randomAlgorithmVersion: 2,

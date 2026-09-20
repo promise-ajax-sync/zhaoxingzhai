@@ -332,4 +332,25 @@ void main() {
 
     repository.dispose();
   });
+
+  test('账号注销会清除历史及同步状态', () async {
+    SharedPreferences.setMockInitialValues({
+      DivinationHistoryRepository.storageKey: jsonEncode([]),
+      DivinationHistoryRepository.syncStorageKey: jsonEncode({}),
+    });
+    final repository = DivinationHistoryRepository();
+
+    await repository.clearLocalData();
+
+    final preferences = await SharedPreferences.getInstance();
+    expect(
+      preferences.containsKey(DivinationHistoryRepository.storageKey),
+      isFalse,
+    );
+    expect(
+      preferences.containsKey(DivinationHistoryRepository.syncStorageKey),
+      isFalse,
+    );
+    repository.dispose();
+  });
 }

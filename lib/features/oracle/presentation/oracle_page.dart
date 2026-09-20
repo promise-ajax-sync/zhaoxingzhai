@@ -31,7 +31,8 @@ class OraclePage extends StatefulWidget {
   final Future<void> Function(
     SsgwResult result,
     AiInterpretationResponse response,
-  )? onAiResponse;
+  )?
+  onAiResponse;
 
   @override
   State<OraclePage> createState() => _OraclePageState();
@@ -50,10 +51,8 @@ class _OraclePageState extends State<OraclePage> {
   Object? _aiError;
   int _aiRequestGeneration = 0;
 
-  DivinationQuestion get _question => DivinationQuestion.parse(
-    _questionController.text.trim(),
-    topic: _topic,
-  );
+  DivinationQuestion get _question =>
+      DivinationQuestion.parse(_questionController.text.trim(), topic: _topic);
 
   @override
   void initState() {
@@ -372,15 +371,14 @@ class _OraclePageState extends State<OraclePage> {
             error: _aiError,
             onRequest: _requestAiReading,
             loadingText: '正在结合原问题、签诗、典故和分项提示生成解读…',
-            idleText: 'AI 将围绕当前问题解读已经抽取的签文，不会重新抽签。',
+            idleText: _question.rawText.isEmpty
+                ? '未填写具体问题，AI 将依据本次签号、签文和解签证据生成通用解读。'
+                : 'AI 将围绕当前问题解读已经抽取的签文，不会重新抽签。',
             actionKey: const ValueKey('ssgw-ai-reading'),
           ),
         ],
         const SizedBox(height: AppTheme.space4),
-        OutlinedButton(
-          onPressed: _reset,
-          child: const Text('重新求签'),
-        ),
+        OutlinedButton(onPressed: _reset, child: const Text('重新求签')),
       ],
     );
   }

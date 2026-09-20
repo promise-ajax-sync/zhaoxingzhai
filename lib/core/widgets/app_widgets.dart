@@ -1,5 +1,5 @@
 /// 通用卡片组件
-/// 参考 SYDF 设计系统
+/// 昭星斋通用界面组件。
 library;
 
 import 'package:flutter/material.dart';
@@ -43,11 +43,7 @@ class AppPageContainer extends StatelessWidget {
   final Widget child;
   final EdgeInsets? padding;
 
-  const AppPageContainer({
-    super.key,
-    required this.child,
-    this.padding,
-  });
+  const AppPageContainer({super.key, required this.child, this.padding});
 
   @override
   Widget build(BuildContext context) {
@@ -81,16 +77,10 @@ class AppPageHeading extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
+                Text(title, style: Theme.of(context).textTheme.headlineMedium),
                 if (subtitle != null) ...[
                   const SizedBox(height: AppTheme.space1),
-                  Text(
-                    subtitle!,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
                 ],
               ],
             ),
@@ -107,11 +97,7 @@ class AppSectionHeading extends StatelessWidget {
   final String title;
   final Widget? trailing;
 
-  const AppSectionHeading({
-    super.key,
-    required this.title,
-    this.trailing,
-  });
+  const AppSectionHeading({super.key, required this.title, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -161,7 +147,8 @@ class AppEmptyState extends StatelessWidget {
             Icon(
               icon,
               size: 64,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.primary
+                  .withValues(alpha: 0.3),
             ),
             const SizedBox(height: AppTheme.space4),
             Text(
@@ -192,10 +179,7 @@ class AppEmptyState extends StatelessWidget {
 class AppLoadingIndicator extends StatelessWidget {
   final String? message;
 
-  const AppLoadingIndicator({
-    super.key,
-    this.message,
-  });
+  const AppLoadingIndicator({super.key, this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -206,10 +190,7 @@ class AppLoadingIndicator extends StatelessWidget {
           const CircularProgressIndicator(),
           if (message != null) ...[
             const SizedBox(height: AppTheme.space4),
-            Text(
-              message!,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            Text(message!, style: Theme.of(context).textTheme.bodySmall),
           ],
         ],
       ),

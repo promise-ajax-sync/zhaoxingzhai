@@ -65,7 +65,8 @@ abstract final class XiaoliurenEvidenceBuilder {
           detail: '解读不得替代医疗、法律、财务或其他专业判断。',
         ),
       ],
-      summary: '以${result.ruleLabel}的时间起课结果、时宫${hourPalace.name}和问题焦点“${question.intent.label}”为依据。',
+      summary:
+          '以${result.ruleLabel}的时间起课结果、时宫${hourPalace.name}和问题焦点“${question.intent.label}”为依据。',
     );
   }
 }

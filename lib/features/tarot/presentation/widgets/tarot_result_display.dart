@@ -236,13 +236,13 @@ class TarotResultDisplay extends StatelessWidget {
   Color _getStatusColor(BuildContext context, AnalysisStatus status) {
     switch (status) {
       case AnalysisStatus.success:
-        return Colors.green;
+        return AppTheme.success(context);
       case AnalysisStatus.caution:
-        return Colors.orange;
+        return AppTheme.caution(context);
       case AnalysisStatus.warning:
-        return Colors.red;
+        return Theme.of(context).colorScheme.error;
       case AnalysisStatus.neutral:
-        return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
     }
   }
 
@@ -263,6 +263,9 @@ class _TarotCardItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isReversed = card.orientation == '逆位';
+    final orientationColor = isReversed
+        ? AppTheme.caution(context)
+        : AppTheme.success(context);
 
     return AppCard(
       child: Column(
@@ -319,13 +322,10 @@ class _TarotCardItem extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isReversed
-                      ? Colors.orange.withValues(alpha: 0.1)
-                      : Colors.green.withValues(alpha: 0.1),
+                      ? AppTheme.caution(context).withValues(alpha: 0.12)
+                      : AppTheme.success(context).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppTheme.radiusRound),
-                  border: Border.all(
-                    color: isReversed ? Colors.orange : Colors.green,
-                    width: 1,
-                  ),
+                  border: Border.all(color: orientationColor, width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -333,14 +333,13 @@ class _TarotCardItem extends StatelessWidget {
                     Icon(
                       isReversed ? Icons.arrow_downward : Icons.arrow_upward,
                       size: 14,
-                      color: isReversed ? Colors.orange : Colors.green,
+                      color: orientationColor,
                     ),
                     const SizedBox(width: AppTheme.space1),
                     Text(
                       card.orientation,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: isReversed ? Colors.orange : Colors.green,
-                      ),
+                      style: Theme.of(context).textTheme.labelSmall
+                          ?.copyWith(color: orientationColor),
                     ),
                   ],
                 ),

@@ -101,4 +101,66 @@ void main() {
       throwsA(isA<AiBackendException>()),
     );
   });
+
+  test('422 响应会显示校验失败的字段路径', () async {
+    final service = BackendAiInterpretationService(
+      MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'detail': [
+              {
+                'type': 'string_too_long',
+                'loc': ['body', 'evidence', 'summary'],
+                'msg': 'String should have at most 8000 characters',
+              },
+            ],
+          }),
+          422,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        ),
+      ),
+      const AiBackendConfig(baseUrl: 'http://127.0.0.1:8000'),
+    );
+
+    await expectLater(
+      service.interpret(request),
+      throwsA(
+        isA<AiBackendException>()
+            .having((error) => error.statusCode, 'statusCode', 422)
+            .having(
+              (error) => error.message,
+              'message',
+              contains('evidence.summary'),
+            ),
+      ),
+    );
+  });
+
+  test('空问题会转换为当前术式的通用解读任务', () {
+    const emptyQuestionRequest = AiInterpretationRequest(
+      question: DivinationQuestion(
+        rawText: '',
+        topic: 'general',
+        intent: DivinationQuestionIntent.general,
+      ),
+      evidence: DivinationEvidence(
+        methodId: 'tarot',
+        version: 1,
+        calculationFacts: [],
+        supportingEvidence: [],
+        counterEvidence: [],
+        limitations: [],
+        summary: '当前牌阵摘要',
+      ),
+      localAnswer: '当前本地解读',
+      methodLabel: '塔罗',
+    );
+
+    final json = emptyQuestionRequest.toJson();
+    final question = json['question'] as Map<String, dynamic>;
+
+    expect(question['rawText'], contains('综合解读本次塔罗结果'));
+    expect(question['intent'], 'general');
+    expect(question['intentLabel'], '通用解读');
+  });
 }

@@ -38,7 +38,7 @@ void main() {
       },
       algorithmId: result.algorithm.id,
       algorithmVersion: result.algorithm.version,
-      schemaVersion: mingyuSchemaVersion,
+      schemaVersion: zhaoxingzhaiSchemaVersion,
     );
 
     final details = MeihuaHistoryDetails.tryParse(record)!;
@@ -62,7 +62,7 @@ void main() {
       payload: const {'original': 'bad'},
       algorithmId: 'meihua',
       algorithmVersion: 1,
-      schemaVersion: mingyuSchemaVersion,
+      schemaVersion: zhaoxingzhaiSchemaVersion,
     );
 
     expect(MeihuaHistoryDetails.tryParse(record), isNull);

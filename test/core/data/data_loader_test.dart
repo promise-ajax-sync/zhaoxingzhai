@@ -42,7 +42,7 @@ void main() {
       expect(TarotData.getCardByNumber(999), isNull);
     });
 
-    test('牌阵应与 mingyu 0.4.0 数据保持一致', () async {
+    test('牌阵应与项目固定数据集保持一致', () async {
       await TarotData.load();
       expect(TarotData.spreads.length, 18);
       expect(TarotData.spreads['celtic']?.cardCount, 10);

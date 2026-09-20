@@ -56,10 +56,7 @@ void main() {
   });
 
   test('缺少必需字段的数据被视为损坏而不是崩溃', () {
-    expect(
-      CaseProfile.tryFromJson(<String, dynamic>{'name': '无时间'}),
-      isNull,
-    );
+    expect(CaseProfile.tryFromJson(<String, dynamic>{'name': '无时间'}), isNull);
     expect(
       CaseProfile.tryFromJson(<String, dynamic>{
         'birthDateTime': DateTime(2000).toIso8601String(),
@@ -111,7 +108,7 @@ void main() {
     expect(decoded.name, isEmpty);
     expect(decoded.gender, CaseGender.unspecified);
     expect(decoded.timezoneId, 'Asia/Shanghai');
-    expect(decoded.displayName, '未命名案例');
+    expect(decoded.displayName, '未命名角色');
     expect(decoded.hasLocation, isFalse);
   });
 

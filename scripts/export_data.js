@@ -102,7 +102,7 @@ fs.writeFileSync(
     _meta: {
       source: 'mingyu/packages/core/src/divination/tarot-data.ts',
       keywordsSource: 'mingyu/packages/core/src/divination/tarot.ts#getCardKeywords',
-      mingyuVersion: mingyuPackage.version,
+      sourceVersion: mingyuPackage.version,
     },
     ...tarot,
   }, null, 2)}\n`,
@@ -113,7 +113,7 @@ fs.writeFileSync(
   `${JSON.stringify({
     _meta: {
       source: 'mingyu canonical heavenly stems and earthly branches',
-      mingyuVersion: mingyuPackage.version,
+      sourceVersion: mingyuPackage.version,
     },
     ...ganzhi,
   }, null, 2)}\n`,

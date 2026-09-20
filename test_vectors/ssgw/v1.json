@@ -1,6 +1,6 @@
 {
   "source": "mingyu ssgw-data + shared/random (equivalent to drawRandomSign selection)",
-  "mingyuVersion": "0.4.0",
+  "sourceVersion": "0.4.0",
   "algorithmVersion": 1,
   "randomAlgorithmId": "fnv1a32-mulberry32",
   "randomAlgorithmVersion": 2,

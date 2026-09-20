@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#1C1A20",
     "theme_color": "#8368AB",
-    "description": "基于 mingyu 算法迁移的 Flutter 东方术数与占卜应用。",
+    "description": "昭星斋 Flutter 东方术数与占卜应用。",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -2,7 +2,7 @@
   "_meta": {
     "source": "mingyu/packages/core/src/divination/ssgw-data/index.ts#SSGW_SIGNS",
     "sourceData": "ssgw-data/signs-full.ts + enrichSsgwSign",
-    "mingyuVersion": "0.4.0"
+    "sourceVersion": "0.4.0"
   },
   "signs": [
     {

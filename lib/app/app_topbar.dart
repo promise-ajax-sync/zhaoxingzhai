@@ -23,6 +23,8 @@ class AppTopBar extends StatelessWidget {
     this.model,
     this.onModelChanged,
     this.onOpenAiSettings,
+    this.accountLabel,
+    this.onOpenAccount,
   });
 
   final AppView view;
@@ -43,6 +45,8 @@ class AppTopBar extends StatelessWidget {
   final String? model;
   final ValueChanged<String>? onModelChanged;
   final VoidCallback? onOpenAiSettings;
+  final String? accountLabel;
+  final VoidCallback? onOpenAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +92,7 @@ class AppTopBar extends StatelessWidget {
           ),
           _TopBarAction(
             icon: Icons.person_outline,
-            label: '添加案例',
+            label: '添加角色',
             onTap: onOpenCases,
           ),
           _TopBarAction(
@@ -97,6 +101,15 @@ class AppTopBar extends StatelessWidget {
             onTap: onOpenHistory,
             labelVisible: false,
           ),
+          if (onOpenAccount != null)
+            _TopBarAction(
+              icon: accountLabel == null
+                  ? Icons.login
+                  : Icons.account_circle_outlined,
+              label: accountLabel ?? '登录',
+              onTap: onOpenAccount!,
+              labelVisible: false,
+            ),
           const SizedBox(width: AppTheme.space1),
         ],
       ),
@@ -373,9 +386,7 @@ class _Menu extends StatelessWidget {
                     Expanded(
                       child: Padding(
                         padding: EdgeInsets.only(
-                          right: option == AnswerPreference.values.last
-                              ? 0
-                              : 6,
+                          right: option == AnswerPreference.values.last ? 0 : 6,
                         ),
                         child: _PreferenceOption(
                           option: option,
@@ -497,9 +508,7 @@ class _PreferenceOption extends StatelessWidget {
               : theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(9),
           border: Border.all(
-            color: active
-                ? theme.colorScheme.primary
-                : theme.dividerColor,
+            color: active ? theme.colorScheme.primary : theme.dividerColor,
           ),
         ),
         child: Stack(

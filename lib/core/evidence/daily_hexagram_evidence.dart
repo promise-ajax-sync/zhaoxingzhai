@@ -19,7 +19,8 @@ abstract final class DailyHexagramEvidenceBuilder {
         DivinationEvidenceItem(
           id: 'original',
           label: '本卦',
-          detail: '${result.original.symbol} ${result.original.name}：${result.original.description}',
+          detail:
+              '${result.original.symbol} ${result.original.name}：${result.original.description}',
         ),
         DivinationEvidenceItem(
           id: 'moving-lines',
@@ -63,7 +64,8 @@ abstract final class DailyHexagramEvidenceBuilder {
           detail: '卦象解读不得替代医疗、法律、财务或其他专业判断。',
         ),
       ],
-      summary: '以本卦${result.original.name}、${result.movingLines.length}个动爻、互卦${result.inter.name}和变卦${result.changed.name}为依据。',
+      summary:
+          '以本卦${result.original.name}、${result.movingLines.length}个动爻、互卦${result.inter.name}和变卦${result.changed.name}为依据。',
     );
   }
 }

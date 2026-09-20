@@ -13,14 +13,13 @@ class AiInterpretationSnapshot {
     required this.evidenceMethodId,
     required this.answerStyle,
     this.fallbackReason,
+    this.reading,
   });
 
   factory AiInterpretationSnapshot.fromResponse(
-    AiInterpretationResponse response,
-    {
+    AiInterpretationResponse response, {
     String answerStyle = 'balanced',
-  }
-  ) => AiInterpretationSnapshot(
+  }) => AiInterpretationSnapshot(
     content: response.content,
     source: response.source,
     providerId: response.providerId,
@@ -30,6 +29,7 @@ class AiInterpretationSnapshot {
     evidenceMethodId: response.evidenceMethodId,
     answerStyle: answerStyle,
     fallbackReason: response.fallbackReason,
+    reading: response.reading,
   );
 
   final String content;
@@ -41,6 +41,7 @@ class AiInterpretationSnapshot {
   final String evidenceMethodId;
   final String answerStyle;
   final String? fallbackReason;
+  final AiStructuredReading? reading;
 
   bool get usedFallback => source == AiAnswerSource.localFallback;
 
@@ -54,6 +55,7 @@ class AiInterpretationSnapshot {
     'evidenceMethodId': evidenceMethodId,
     'answerStyle': answerStyle,
     if (fallbackReason != null) 'fallbackReason': fallbackReason,
+    if (reading != null) 'reading': reading!.toJson(),
   };
 
   static AiInterpretationSnapshot? tryParse(Object? raw) {

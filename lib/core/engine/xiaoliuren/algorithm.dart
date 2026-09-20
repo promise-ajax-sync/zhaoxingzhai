@@ -1,6 +1,6 @@
 /// 小六壬核心算法
 ///
-/// 完整移植自 mingyu-core/src/divination/algorithms/xiaoliuren.ts
+/// 小六壬排课算法。
 library;
 
 import 'package:lunar/lunar.dart';

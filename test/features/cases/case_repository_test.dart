@@ -155,4 +155,21 @@ void main() {
     selection.dispose();
     repository.dispose();
   });
+
+  test('账号注销会清除案例和云同步映射', () async {
+    SharedPreferences.setMockInitialValues({
+      CaseRepository.storageKey: jsonEncode([]),
+      CaseRepository.serverIdsKey: jsonEncode({'local': 'server'}),
+      CaseRepository.pendingDeletesKey: jsonEncode({'old': 'deleted'}),
+    });
+    final repository = CaseRepository();
+
+    await repository.clearLocalData();
+
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.containsKey(CaseRepository.storageKey), isFalse);
+    expect(preferences.containsKey(CaseRepository.serverIdsKey), isFalse);
+    expect(preferences.containsKey(CaseRepository.pendingDeletesKey), isFalse);
+    repository.dispose();
+  });
 }

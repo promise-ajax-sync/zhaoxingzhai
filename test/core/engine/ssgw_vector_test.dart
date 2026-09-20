@@ -14,7 +14,7 @@ void main() {
 
   setUpAll(SsgwData.load);
 
-  group('三山国王灵签 mingyu 0.4.0 golden', () {
+  group('三山国王灵签固定回归向量', () {
     for (final raw in cases) {
       final vector = Map<String, dynamic>.from(raw as Map);
       test(vector['caseId'] as String, () {

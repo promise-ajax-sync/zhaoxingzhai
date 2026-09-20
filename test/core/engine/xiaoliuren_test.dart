@@ -1,11 +1,12 @@
 /// 小六壬算法测试
 ///
-/// 完整移植自 mingyu/tests/xiaoliuren-algorithm.test.ts
+/// 小六壬算法回归测试。
 library;
 
 import 'package:test/test.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/rules.dart';
+import 'package:zhaoxingzhai/core/shared/result.dart';
 
 void main() {
   group('小六壬算法测试', () {
@@ -156,7 +157,7 @@ void main() {
       );
 
       final json = data.toJson();
-      expect(json['meta']['engineVersion'], equals('0.4.0'));
+      expect(json['meta']['engineVersion'], equals(zhaoxingzhaiEngineVersion));
       expect(json['meta']['algorithm'], equals('xiaoliuren'));
       expect(json['meta']['algorithmVersion'], equals(1));
       expect(json['meta']['ruleset'], equals('common-six-palace'));

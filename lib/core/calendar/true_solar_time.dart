@@ -1,10 +1,11 @@
 /// 真太阳时转换
 ///
-/// 完整移植自 mingyu-core 的 true-solar-time.ts
+/// 真太阳时计算工具。
 /// 统一处理公历/农历、闰月、时区、中国历史夏令时、跨日与时辰索引
 library;
 
 import 'dart:math' as math;
+
 import 'civil_time.dart';
 import 'china_dst.dart';
 import 'date_utils.dart';
@@ -202,7 +203,9 @@ class TrueSolarBirthTimeResult extends TrueSolarTimeConversionResult {
 
 // ==================== 工具函数 ====================
 
-final _localDateTimePattern = RegExp(r'^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$');
+final _localDateTimePattern = RegExp(
+  r'^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$',
+);
 
 String _pad(int value) => value.toString().padLeft(2, '0');
 
@@ -270,7 +273,9 @@ double calculateEquationOfTimeMinutes(int year, int month, int day) {
   validateSolarDate(year, month, day);
   final dayOfYear = _getDayOfYear(year, month, day);
   final angle = (2 * math.pi * (dayOfYear - 81)) / 364;
-  return 9.87 * math.sin(2 * angle) - 7.53 * math.cos(angle) - 1.5 * math.sin(angle);
+  return 9.87 * math.sin(2 * angle) -
+      7.53 * math.cos(angle) -
+      1.5 * math.sin(angle);
 }
 
 /// 计算真太阳时
@@ -285,7 +290,9 @@ TrueSolarTimeResult calculateTrueSolarTime(
   if (!longitude.isFinite || longitude < -180 || longitude > 180) {
     throw ArgumentError('经度需在 -180 到 180 之间。');
   }
-  if (!standardMeridian.isFinite || standardMeridian < -180 || standardMeridian > 210) {
+  if (!standardMeridian.isFinite ||
+      standardMeridian < -180 ||
+      standardMeridian > 210) {
     throw ArgumentError('标准经线需在 -180 到 210 之间。');
   }
 
@@ -295,7 +302,8 @@ TrueSolarTimeResult calculateTrueSolarTime(
     standardTime.day,
   );
   final longitudeCorrectionMinutes = (longitude - standardMeridian) * 4;
-  final totalCorrectionMinutes = equationOfTimeMinutes + longitudeCorrectionMinutes;
+  final totalCorrectionMinutes =
+      equationOfTimeMinutes + longitudeCorrectionMinutes;
 
   final correctedDate = DateTime.utc(
     standardTime.year,
@@ -374,9 +382,16 @@ TrueSolarTimeConversionResult convertTrueSolarTime(
       : clockTime;
 
   final standardMeridian = timezone * 15;
-  final result = calculateTrueSolarTime(standardTime, input.longitude, standardMeridian);
+  final result = calculateTrueSolarTime(
+    standardTime,
+    input.longitude,
+    standardMeridian,
+  );
 
-  final shichen = getShichenFromClock(result.correctedTime.hour, result.correctedTime.minute);
+  final shichen = getShichenFromClock(
+    result.correctedTime.hour,
+    result.correctedTime.minute,
+  );
   if (shichen == null) {
     throw ArgumentError('无法根据校正后的真太阳时确定时辰。');
   }
@@ -385,7 +400,8 @@ TrueSolarTimeConversionResult convertTrueSolarTime(
   final standardDateTime = formatSolarDateTimeParts(standardTime);
   final correctedDateTime = formatSolarDateTimeParts(result.correctedTime);
 
-  final crossesDate = clockTime.year != result.correctedTime.year ||
+  final crossesDate =
+      clockTime.year != result.correctedTime.year ||
       clockTime.month != result.correctedTime.month ||
       clockTime.day != result.correctedTime.day;
 

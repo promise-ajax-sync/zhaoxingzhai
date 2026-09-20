@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 enum AppView {
   tools('首页', Icons.grid_view_outlined, Icons.grid_view),
   charts('梅花易数', Icons.filter_vintage_outlined, Icons.filter_vintage),
-  compatibility('合盘', Icons.favorite_border, Icons.favorite),
+  compatibility('基础关系合盘', Icons.favorite_border, Icons.favorite),
   oracle('灵签', Icons.article_outlined, Icons.article),
   xiaoliuren('小六壬', Icons.nightlight_outlined, Icons.nightlight),
   dailyHexagram('每日一卦', Icons.monetization_on_outlined, Icons.monetization_on),
@@ -18,7 +18,7 @@ enum AppView {
   nameNumber('姓名与数字', Icons.menu_book_outlined, Icons.menu_book),
   zhuge('诸葛神数', Icons.receipt_long_outlined, Icons.receipt_long),
   kongming('孔明神卦', Icons.change_history_outlined, Icons.change_history),
-  cases('案例', Icons.book_outlined, Icons.book),
+  cases('角色', Icons.book_outlined, Icons.book),
   settings('设置', Icons.settings_outlined, Icons.settings);
 
   const AppView(this.label, this.icon, this.selectedIcon);

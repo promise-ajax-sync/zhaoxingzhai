@@ -1,6 +1,6 @@
 /// 错误和结果封装
 ///
-/// 完整移植自 mingyu-core/src/shared/result.ts
+/// 昭星斋占测引擎的错误与结果协议。
 library;
 
 import 'dart:convert';
@@ -16,14 +16,14 @@ enum ErrorCategory {
 }
 
 /// 核心错误类
-class MingyuCoreError implements Exception {
+class DivinationEngineError implements Exception {
   final String code;
   final ErrorCategory category;
   final String message;
   final String? field;
   final Map<String, dynamic>? details;
 
-  const MingyuCoreError({
+  const DivinationEngineError({
     required this.code,
     required this.category,
     required this.message,
@@ -33,7 +33,7 @@ class MingyuCoreError implements Exception {
 
   @override
   String toString() {
-    final buffer = StringBuffer('MingyuCoreError: [$code] $message');
+    final buffer = StringBuffer('DivinationEngineError: [$code] $message');
     if (field != null) {
       buffer.write(' (field: $field)');
     }
@@ -52,10 +52,10 @@ class MingyuCoreError implements Exception {
   };
 }
 
-const mingyuCoreVersion = '0.4.0';
-const mingyuSchemaVersion = '1.0.0';
+const zhaoxingzhaiEngineVersion = '1.0.0';
+const zhaoxingzhaiSchemaVersion = '1.0.0';
 
-/// 结果元数据，与 mingyu-core 的公共结果协议保持相同字段。
+/// 昭星斋占测引擎的统一结果元数据。
 class ResultMeta {
   final String engineVersion;
   final String schemaVersion;
@@ -144,15 +144,15 @@ ResultMeta createResultMeta({
     'algorithmVersion': descriptor.version,
     'ruleset': descriptor.ruleset,
     'implementation': descriptor.implementation,
-    'engineVersion': mingyuCoreVersion,
-    'schemaVersion': mingyuSchemaVersion,
+    'engineVersion': zhaoxingzhaiEngineVersion,
+    'schemaVersion': zhaoxingzhaiSchemaVersion,
     ...model == null ? const {} : {'model': model},
     'inputHash': inputHash,
     ...random == null ? const {} : {'randomSamples': random['samples']},
   });
   return ResultMeta(
-    engineVersion: mingyuCoreVersion,
-    schemaVersion: mingyuSchemaVersion,
+    engineVersion: zhaoxingzhaiEngineVersion,
+    schemaVersion: zhaoxingzhaiSchemaVersion,
     algorithm: normalizedAlgorithm,
     algorithmVersion: descriptor.version,
     ruleset: descriptor.ruleset,

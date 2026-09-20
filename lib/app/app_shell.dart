@@ -1,22 +1,34 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:zhaoxingzhai/app/app_sidebar.dart';
 import 'package:zhaoxingzhai/app/app_topbar.dart';
 import 'package:zhaoxingzhai/app/app_view.dart';
 import 'package:zhaoxingzhai/app/placeholder_page.dart';
 import 'package:zhaoxingzhai/core/ai/ai_service_factory.dart';
+import 'package:zhaoxingzhai/core/auth/auth_session.dart';
+import 'package:zhaoxingzhai/core/database/app_database.dart';
 import 'package:zhaoxingzhai/core/models/answer_preference.dart';
 import 'package:zhaoxingzhai/core/routing/divination_tool_router.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 import 'package:zhaoxingzhai/features/cases/case_selection.dart';
 import 'package:zhaoxingzhai/features/cases/data/case_repository.dart';
+import 'package:zhaoxingzhai/features/cases/data/case_cloud_sync.dart';
 import 'package:zhaoxingzhai/features/cases/presentation/cases_page.dart';
+import 'package:zhaoxingzhai/features/compatibility/presentation/compatibility_page.dart';
+import 'package:zhaoxingzhai/features/almanac/presentation/almanac_page.dart';
 import 'package:zhaoxingzhai/features/daily_hexagram/presentation/daily_hexagram_page.dart';
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
+import 'package:zhaoxingzhai/features/history/data/history_cloud_sync.dart';
 import 'package:zhaoxingzhai/features/history/presentation/history_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
+import 'package:zhaoxingzhai/features/fortune/domain/today_fortune.dart';
+import 'package:zhaoxingzhai/features/fortune/presentation/fortune_page.dart';
 import 'package:zhaoxingzhai/features/meihua/presentation/meihua_page.dart';
 import 'package:zhaoxingzhai/features/oracle/presentation/oracle_page.dart';
+import 'package:zhaoxingzhai/features/settings/presentation/settings_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
 import 'package:zhaoxingzhai/features/xiaoliuren/presentation/xiaoliuren_page.dart';
 
@@ -41,6 +53,9 @@ class _AppShellState extends State<AppShell> {
   );
 
   late final DivinationHistoryRepository _historyRepository;
+  late final http.Client _historySyncClient;
+  late final AuthSession _authSession;
+  String? _activeUserId;
   late final CaseRepository _caseRepository;
   late final CaseSelectionController _caseSelection;
   late final AiServiceBundle _aiServiceBundle = AiServiceFactory.create();
@@ -50,6 +65,11 @@ class _AppShellState extends State<AppShell> {
     AppView.tools: HomePage(
       onOpenFeature: _open,
       onOpenRoutedQuestion: _openRoutedQuestion,
+      fortuneHeadline: () => TodayFortune.build(
+        DateTime.now(),
+        caseSnapshot: _caseSelection.currentSnapshot,
+      ).headline,
+      fortuneListenable: _caseSelection,
     ),
     AppView.charts: MeihuaPage(
       routedDraft: _routedDraft,
@@ -68,6 +88,20 @@ class _AppShellState extends State<AppShell> {
         caseSnapshot: _caseSelection.currentSnapshot,
       ),
     ),
+    AppView.compatibility: CompatibilityPage(
+      repository: _caseRepository,
+      aiService: _aiServiceBundle.service,
+      answerStyle: () => _preference.id,
+      onOpenCases: () => _open(AppView.cases),
+      onResult: _historyRepository.addCompatibility,
+      onAiResponse: (result, response) async {
+        await _historyRepository.updateAiInterpretation(
+          result.stableId,
+          response,
+          answerStyle: _preference.id,
+        );
+      },
+    ),
     AppView.xiaoliuren: XiaoliurenPage(
       routedDraft: _routedDraft,
       aiService: _aiServiceBundle.service,
@@ -79,11 +113,12 @@ class _AppShellState extends State<AppShell> {
           answerStyle: _preference.id,
         );
       },
-      onResultWithQuestion: (result, question) => _historyRepository.addXiaoliuren(
-        result,
-        question: question,
-        caseSnapshot: _caseSelection.currentSnapshot,
-      ),
+      onResultWithQuestion: (result, question) =>
+          _historyRepository.addXiaoliuren(
+            result,
+            question: question,
+            caseSnapshot: _caseSelection.currentSnapshot,
+          ),
     ),
     AppView.oracle: OraclePage(
       routedDraft: _routedDraft,
@@ -116,10 +151,10 @@ class _AppShellState extends State<AppShell> {
       currentCase: () => _caseSelection.currentSnapshot,
       onResultWithQuestion: (result, question) =>
           _historyRepository.addDailyHexagram(
-        result,
-        question: question,
-        caseSnapshot: _caseSelection.currentSnapshot,
-      ),
+            result,
+            question: question,
+            caseSnapshot: _caseSelection.currentSnapshot,
+          ),
     ),
     AppView.tarot: TarotPage(
       routedDraft: _routedDraft,
@@ -138,18 +173,53 @@ class _AppShellState extends State<AppShell> {
         caseSnapshot: _caseSelection.currentSnapshot,
       ),
     ),
+    AppView.almanac: const AlmanacPage(),
+    AppView.fortune: FortunePage(
+      currentCase: () => _caseSelection.currentSnapshot,
+      aiService: _aiServiceBundle.service,
+      answerStyle: () => _preference.id,
+      onResult: (result, currentCase) =>
+          _historyRepository.addTodayFortune(result, caseSnapshot: currentCase),
+      onAiResponse: (result, response) async {
+        await _historyRepository.updateAiInterpretation(
+          DivinationHistoryRepository.todayFortuneRecordId(result),
+          response,
+          answerStyle: _preference.id,
+        );
+      },
+    ),
     AppView.cases: CasesPage(
       repository: _caseRepository,
       selection: _caseSelection,
+    ),
+    AppView.settings: SettingsPage(
+      authSession: _authSession,
+      onAccountDeleted: _clearDeletedAccountData,
     ),
   };
 
   @override
   void initState() {
     super.initState();
-    _historyRepository = DivinationHistoryRepository();
-    _caseRepository = CaseRepository();
+    _historySyncClient = http.Client();
+    _authSession = AuthSession(client: _historySyncClient)
+      ..addListener(_onAuthChanged);
+    _historyRepository = DivinationHistoryRepository(
+      database: AppDatabase.shared,
+      cloudSync: BackendHistoryCloudSync(
+        client: _historySyncClient,
+        accessToken: _authSession.accessTokenForRequest,
+      ),
+    );
+    _caseRepository = CaseRepository(
+      database: AppDatabase.shared,
+      cloudSync: CaseCloudSync(
+        client: _historySyncClient,
+        accessToken: _authSession.accessTokenForRequest,
+      ),
+    );
     _caseSelection = CaseSelectionController(_caseRepository);
+    unawaited(_authSession.restore());
   }
 
   @override
@@ -157,9 +227,35 @@ class _AppShellState extends State<AppShell> {
     _caseSelection.dispose();
     _caseRepository.dispose();
     _historyRepository.dispose();
+    _authSession
+      ..removeListener(_onAuthChanged)
+      ..dispose();
+    _historySyncClient.close();
     _aiServiceBundle.dispose();
     _routedDraft.dispose();
     super.dispose();
+  }
+
+  void _onAuthChanged() {
+    final nextUserId = _authSession.user?.id;
+    if (nextUserId != null && nextUserId != _activeUserId) {
+      unawaited(_historyRepository.refreshFromCloud());
+      unawaited(_caseRepository.refreshFromCloud());
+    }
+    _activeUserId = nextUserId;
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _clearDeletedAccountData() async {
+    _caseSelection.clearSelection();
+    await _caseRepository.clearLocalData();
+    await _historyRepository.clearLocalData();
+    if (mounted) {
+      setState(() {
+        _view = AppView.settings;
+        _activeUserId = null;
+      });
+    }
   }
 
   void _open(AppView view) {
@@ -222,6 +318,8 @@ class _AppShellState extends State<AppShell> {
       preference: _view == AppView.tools ? _preference : null,
       onPreferenceChanged: (value) => setState(() => _preference = value),
       channelName: '内置 AI',
+      accountLabel: _authSession.user?.displayName ?? _authSession.user?.email,
+      onOpenAccount: () => _open(AppView.settings),
     );
 
     final content = IndexedStack(

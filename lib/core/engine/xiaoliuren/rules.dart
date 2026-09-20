@@ -1,20 +1,20 @@
 /// 小六壬规则定义
 ///
-/// 完整移植自 mingyu-core/src/divination/xiaoliuren-rules.ts
+/// 小六壬规则定义。
 library;
 
 /// 小六壬起课规则
 enum XiaoliurenRule {
-  common,   // 通行掌诀
-  duoneng,  // 《多能鄙事》
+  common, // 通行掌诀
+  duoneng, // 《多能鄙事》
 }
 
 /// 规则详情
 class XiaoliurenRuleDetail {
   final XiaoliurenRule id;
   final String label;
-  final int dayStartOffset;  // 日宫起始偏移
-  final String source;       // 口径来源
+  final int dayStartOffset; // 日宫起始偏移
+  final String source; // 口径来源
 
   const XiaoliurenRuleDetail({
     required this.id,
@@ -33,7 +33,7 @@ const xiaoliurenRuleOptions = [
 /// 解析小六壬规则
 XiaoliurenRuleDetail resolveXiaoliurenRule([XiaoliurenRule? rule]) {
   final actualRule = rule ?? XiaoliurenRule.common;
-  
+
   if (actualRule == XiaoliurenRule.duoneng) {
     return const XiaoliurenRuleDetail(
       id: XiaoliurenRule.duoneng,
@@ -42,7 +42,7 @@ XiaoliurenRuleDetail resolveXiaoliurenRule([XiaoliurenRule? rule]) {
       source: '《多能鄙事》卷八"小六壬课时"：正月初一留连，二月初一速喜；日宫起子时，依大安、留连、速喜、赤口、小吉、空亡顺行',
     );
   }
-  
+
   return const XiaoliurenRuleDetail(
     id: XiaoliurenRule.common,
     label: '通行掌诀',

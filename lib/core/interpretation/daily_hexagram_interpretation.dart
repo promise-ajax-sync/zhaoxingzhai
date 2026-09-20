@@ -43,7 +43,8 @@ class DailyHexagramInterpretation {
     DailyHexagramResult result, {
     DivinationQuestion? question,
   }) {
-    final actualQuestion = question ??
+    final actualQuestion =
+        question ??
         const DivinationQuestion(
           rawText: '',
           topic: 'general',
@@ -102,13 +103,14 @@ class DailyHexagramInterpretation {
     DailyHexagramResult result,
     String pace,
   ) {
-    final current = '本卦${result.original.name}提示：${result.original.description}';
-    final future = '变卦${result.changed.name}提示后续方向：${result.changed.description}';
+    final current =
+        '本卦${result.original.name}提示：${result.original.description}';
+    final future =
+        '变卦${result.changed.name}提示后续方向：${result.changed.description}';
     return switch (intent) {
       DivinationQuestionIntent.yesNo =>
         '每日一卦不适合给出绝对的是或否。$current请先核对条件，再用当天的真实反馈决定是否继续。',
-      DivinationQuestionIntent.timing =>
-        '本卦只能说明今天的行动节奏，不能给出精确日期。$pace',
+      DivinationQuestionIntent.timing => '本卦只能说明今天的行动节奏，不能给出精确日期。$pace',
       DivinationQuestionIntent.location =>
         '每日一卦不足以锁定具体地点或方位。$current可把重点放在今天应如何观察和行动。',
       DivinationQuestionIntent.person =>

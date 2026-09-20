@@ -66,10 +66,7 @@ void main() {
       ctx.random(); // 消耗第一个
       ctx.random(); // 消耗第二个
 
-      expect(
-        () => ctx.random(),
-        throwsA(isA<MingyuCoreError>()),
-      );
+      expect(() => ctx.random(), throwsA(isA<DivinationEngineError>()));
     });
 
     test('randomInt 应生成正确范围内的整数', () {
@@ -84,7 +81,7 @@ void main() {
     test('randomInt 应无偏分布（统计测试）', () {
       final ctx = createRandomContext(seed: 12345);
       final counts = List.filled(5, 0);
-      
+
       for (int i = 0; i < 5000; i++) {
         final value = randomInt(5, ctx.random);
         counts[value]++;
@@ -99,7 +96,7 @@ void main() {
 
     test('getTrace 应记录所有样本', () {
       final ctx = createRandomContext(seed: 'trace-test');
-      
+
       ctx.random();
       ctx.random();
       ctx.random();
@@ -148,14 +145,14 @@ void main() {
     test('replay 空数组应抛出异常', () {
       expect(
         () => createRandomContext(replay: []),
-        throwsA(isA<MingyuCoreError>()),
+        throwsA(isA<DivinationEngineError>()),
       );
     });
 
     test('多个随机选项同时提供应抛出异常', () {
       expect(
         () => createRandomContext(seed: 123, replay: [0.5]),
-        throwsA(isA<MingyuCoreError>()),
+        throwsA(isA<DivinationEngineError>()),
       );
     });
 
@@ -163,11 +160,11 @@ void main() {
       final ctx = createRandomContext();
       expect(
         () => randomInt(0, ctx.random),
-        throwsA(isA<MingyuCoreError>()),
+        throwsA(isA<DivinationEngineError>()),
       );
       expect(
         () => randomInt(-1, ctx.random),
-        throwsA(isA<MingyuCoreError>()),
+        throwsA(isA<DivinationEngineError>()),
       );
     });
 
@@ -211,13 +208,55 @@ void main() {
   // 因此必须显式确认后才有意更新。
   group('固定种子向量（回归基线）', () {
     const vectors = <String, List<double>>{
-      'test': [0.7171058997, 0.3465085106, 0.2675761438, 0.2510541403, 0.8766860503],
-      'abc': [0.5166419989, 0.6596221293, 0.0018796597, 0.8993499738, 0.7205349628],
-      'seed': [0.9498909889, 0.0760880485, 0.0262593005, 0.6270247973, 0.0932085868],
-      'xiaoliuren': [0.3633643612, 0.1510057927, 0.0453237824, 0.0621373011, 0.4749033514],
-      '资料隔离': [0.7317366910, 0.7408707764, 0.0761906742, 0.5007299406, 0.7770696981],
-      '': [0.6112444522, 0.4935242918, 0.7740248835, 0.4122861116, 0.8122657815],
-      '1': [0.8317172497, 0.1230088961, 0.8262572752, 0.7499541824, 0.5743482173],
+      'test': [
+        0.7171058997,
+        0.3465085106,
+        0.2675761438,
+        0.2510541403,
+        0.8766860503,
+      ],
+      'abc': [
+        0.5166419989,
+        0.6596221293,
+        0.0018796597,
+        0.8993499738,
+        0.7205349628,
+      ],
+      'seed': [
+        0.9498909889,
+        0.0760880485,
+        0.0262593005,
+        0.6270247973,
+        0.0932085868,
+      ],
+      'xiaoliuren': [
+        0.3633643612,
+        0.1510057927,
+        0.0453237824,
+        0.0621373011,
+        0.4749033514,
+      ],
+      '资料隔离': [
+        0.7317366910,
+        0.7408707764,
+        0.0761906742,
+        0.5007299406,
+        0.7770696981,
+      ],
+      '': [
+        0.6112444522,
+        0.4935242918,
+        0.7740248835,
+        0.4122861116,
+        0.8122657815,
+      ],
+      '1': [
+        0.8317172497,
+        0.1230088961,
+        0.8262572752,
+        0.7499541824,
+        0.5743482173,
+      ],
     };
 
     vectors.forEach((seed, expected) {
@@ -319,7 +358,10 @@ void main() {
     });
 
     test('secureRandomInt 在大范围下应给出分散取值', () {
-      final distinct = List.generate(2000, (_) => secureRandomInt(1000000)).toSet();
+      final distinct = List.generate(
+        2000,
+        (_) => secureRandomInt(1000000),
+      ).toSet();
       expect(distinct.length, greaterThan(1900));
     });
   });

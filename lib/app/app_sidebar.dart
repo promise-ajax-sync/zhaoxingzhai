@@ -177,7 +177,9 @@ class _NavTile extends StatelessWidget {
                     Icon(
                       active ? view.selectedIcon : view.icon,
                       size: 17,
-                      color: active ? accentStrong : theme.textTheme.bodySmall?.color,
+                      color: active
+                          ? accentStrong
+                          : theme.textTheme.bodySmall?.color,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -186,7 +188,9 @@ class _NavTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: active
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                           color: active
                               ? accentStrong
                               : theme.textTheme.bodySmall?.color,

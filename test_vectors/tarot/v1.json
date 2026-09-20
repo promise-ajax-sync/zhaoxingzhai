@@ -1,6 +1,6 @@
 {
   "source": "mingyu/packages/core/src/divination/tarot.ts#drawSpreadCards",
-  "mingyuVersion": "0.4.0",
+  "sourceVersion": "0.4.0",
   "algorithmVersion": 1,
   "randomAlgorithmId": "fnv1a32-mulberry32",
   "randomAlgorithmVersion": 2,

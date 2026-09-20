@@ -63,17 +63,44 @@ class BackendAiInterpretationService implements AiInterpretationService {
       if (detail is String && detail.trim().isNotEmpty) {
         return detail.trim();
       }
+      if (detail is List) {
+        final validationErrors = detail
+            .map(_validationErrorMessage)
+            .whereType<String>()
+            .toList(growable: false);
+        if (validationErrors.isNotEmpty) {
+          return '请求参数校验失败：${validationErrors.join('；')}';
+        }
+      }
       final error = decoded['error'];
       if (error is String && error.trim().isNotEmpty) {
         return error.trim();
       }
     }
     return switch (statusCode) {
-      400 => '请求内容无效',
+      400 || 422 => '请求内容无效',
       401 || 403 => 'AI 后端拒绝了请求',
       429 => 'AI 请求过于频繁，请稍后再试',
       >= 500 => 'AI 后端暂时不可用',
       _ => 'AI 请求失败',
     };
+  }
+
+  static String? _validationErrorMessage(Object? raw) {
+    if (raw is! Map) {
+      return null;
+    }
+    final message = raw['msg'];
+    if (message is! String || message.trim().isEmpty) {
+      return null;
+    }
+    final location = raw['loc'];
+    final path = location is List
+        ? location
+              .where((part) => part != 'body')
+              .map((part) => part.toString())
+              .join('.')
+        : '';
+    return path.isEmpty ? message.trim() : '$path: ${message.trim()}';
   }
 }

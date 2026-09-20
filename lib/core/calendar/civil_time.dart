@@ -1,5 +1,5 @@
 /// 民用时间统一解析
-/// 
+///
 /// 统一处理当地钟表时间、固定 UTC 偏移与 IANA 历史时区，
 /// 供真太阳时、星盘和天文时间共用。
 library;
@@ -42,10 +42,7 @@ class CivilTimeZoneInput {
   /// IANA 历史时区，例如 Asia/Shanghai、America/New_York
   final String? timeZoneId;
 
-  const CivilTimeZoneInput({
-    this.timezone,
-    this.timeZoneId,
-  });
+  const CivilTimeZoneInput({this.timezone, this.timeZoneId});
 }
 
 /// 民用时间解析输入
@@ -86,7 +83,8 @@ class CivilTimeResolution {
   final double timezone;
   final String? timeZoneId;
   final HistoricalTimezoneEvidence? timezoneEvidence;
-  final String timezoneSource; // 'default-fixed-offset' | 'fixed-offset' | 'iana-time-zone'
+  final String
+  timezoneSource; // 'default-fixed-offset' | 'fixed-offset' | 'iana-time-zone'
   final int utcTimestamp;
   final String utcDateTime;
 
@@ -121,7 +119,9 @@ String formatFixedTimezoneOffset(double timezone) {
 }
 
 void assertFixedTimezoneHours(double value, [String label = 'timezone']) {
-  if (!value.isFinite || value < minFixedTimezoneHours || value > maxFixedTimezoneHours) {
+  if (!value.isFinite ||
+      value < minFixedTimezoneHours ||
+      value > maxFixedTimezoneHours) {
     throw ArgumentError(
       '$label 需在 UTC$minFixedTimezoneHours 到 UTC+$maxFixedTimezoneHours 之间。',
     );
@@ -134,7 +134,9 @@ CivilDateTimeParts getCivilDateTimeAtFixedOffset(
   double timezone = defaultChinaTimezoneHours,
 ]) {
   assertFixedTimezoneHours(timezone);
-  final shifted = referenceDate.add(Duration(milliseconds: (timezone * 3600000).round()));
+  final shifted = referenceDate.add(
+    Duration(milliseconds: (timezone * 3600000).round()),
+  );
   return CivilDateTimeParts(
     year: shifted.year,
     month: shifted.month,
@@ -192,16 +194,18 @@ CivilTimeResolution resolveCivilTime(
 
   final timeZoneId = _normalizeTimeZoneId(input.timeZoneId);
   final timezoneEvidence = timeZoneId != null
-      ? resolveHistoricalTimezone(HistoricalTimezoneInput(
-          year: localTime.year,
-          month: localTime.month,
-          day: localTime.day,
-          hour: localTime.hour,
-          minute: localTime.minute,
-          second: localTime.second,
-          timeZoneId: timeZoneId,
-          fixedOffsetHours: input.timezone,
-        ))
+      ? resolveHistoricalTimezone(
+          HistoricalTimezoneInput(
+            year: localTime.year,
+            month: localTime.month,
+            day: localTime.day,
+            hour: localTime.hour,
+            minute: localTime.minute,
+            second: localTime.second,
+            timeZoneId: timeZoneId,
+            fixedOffsetHours: input.timezone,
+          ),
+        )
       : null;
 
   if (timezoneEvidence?.status == 'ambiguous' && input.timezone == null) {
@@ -218,9 +222,10 @@ CivilTimeResolution resolveCivilTime(
     );
   }
 
-  final timezone = timezoneEvidence?.resolvedOffsetHours ??
-                   input.timezone ??
-                   options.defaultTimezone;
+  final timezone =
+      timezoneEvidence?.resolvedOffsetHours ??
+      input.timezone ??
+      options.defaultTimezone;
 
   if (timezone == null) {
     throw ArgumentError('timezone 与 timeZoneId 至少需要提供一项。');
@@ -235,8 +240,9 @@ CivilTimeResolution resolveCivilTime(
     localTime.second,
   );
 
-  final utcTimestamp = timezoneEvidence?.selectedUtcTimestamp ??
-                       wallTimestamp - (timezone * 3600000).round();
+  final utcTimestamp =
+      timezoneEvidence?.selectedUtcTimestamp ??
+      wallTimestamp - (timezone * 3600000).round();
 
   return CivilTimeResolution(
     localTime: localTime,
@@ -247,9 +253,12 @@ CivilTimeResolution resolveCivilTime(
     timezoneSource: timeZoneId != null
         ? 'iana-time-zone'
         : input.timezone != null
-            ? 'fixed-offset'
-            : 'default-fixed-offset',
+        ? 'fixed-offset'
+        : 'default-fixed-offset',
     utcTimestamp: utcTimestamp,
-    utcDateTime: DateTime.fromMillisecondsSinceEpoch(utcTimestamp, isUtc: true).toIso8601String(),
+    utcDateTime: DateTime.fromMillisecondsSinceEpoch(
+      utcTimestamp,
+      isUtc: true,
+    ).toIso8601String(),
   );
 }

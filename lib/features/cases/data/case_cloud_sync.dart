@@ -1,0 +1,100 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zhaoxingzhai/core/ai/ai_backend_config.dart';
+import 'package:zhaoxingzhai/core/auth/auth_session.dart';
+import 'package:zhaoxingzhai/core/models/case_profile.dart';
+
+class CloudCase {
+  const CloudCase({required this.serverId, required this.profile});
+  final String serverId;
+  final CaseProfile profile;
+}
+
+class CaseCloudSync {
+  CaseCloudSync({
+    required http.Client client,
+    required Future<String?> Function() accessToken,
+    AiBackendConfig? config,
+    Future<SharedPreferences> Function()? preferencesFactory,
+  }) : _client = _retainClient(client),
+       _accessToken = _retainAccessToken(accessToken),
+       _config = config ?? AiBackendConfig.fromEnvironment(),
+       _preferencesFactory =
+           preferencesFactory ?? SharedPreferences.getInstance;
+
+  static http.Client _retainClient(http.Client value) => value;
+  static Future<String?> Function() _retainAccessToken(
+    Future<String?> Function() value,
+  ) => value;
+
+  final http.Client _client;
+  final Future<String?> Function() _accessToken;
+  final AiBackendConfig _config;
+  final Future<SharedPreferences> Function() _preferencesFactory;
+
+  Uri get _casesUri => _config.interpretUri.replace(path: '/api/v1/cases');
+
+  Future<List<CloudCase>> fetchCases() async {
+    final response = await _client.get(_casesUri, headers: await _headers());
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw StateError('角色下载失败：HTTP ${response.statusCode}');
+    }
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! List) throw const FormatException('角色响应格式无效');
+    return decoded.map(_parse).whereType<CloudCase>().toList();
+  }
+
+  Future<String> upsert(CaseProfile profile) async {
+    final response = await _client.post(
+      _casesUri,
+      headers: await _headers(),
+      body: jsonEncode({
+        'clientId': profile.id,
+        'name': profile.name,
+        'profile': profile.toJson(),
+      }),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw StateError('角色同步失败：HTTP ${response.statusCode}');
+    }
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map || decoded['id'] is! String) {
+      throw const FormatException('角色同步响应缺少 ID');
+    }
+    return decoded['id'] as String;
+  }
+
+  Future<void> delete(String serverId) async {
+    final response = await _client.delete(
+      _casesUri.replace(path: '${_casesUri.path}/$serverId'),
+      headers: await _headers(),
+    );
+    if (response.statusCode != 204 && response.statusCode != 404) {
+      throw StateError('角色删除同步失败：HTTP ${response.statusCode}');
+    }
+  }
+
+  Future<Map<String, String>> _headers() async {
+    final token = await _accessToken();
+    return {
+      'Content-Type': 'application/json',
+      'X-Device-ID': await AuthSession.deviceId(_preferencesFactory),
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  static CloudCase? _parse(Object? raw) {
+    if (raw is! Map) return null;
+    final json = Map<String, dynamic>.from(raw);
+    final id = json['id'];
+    final profileJson = json['profile'];
+    if (id is! String || profileJson is! Map) return null;
+    final profile = CaseProfile.tryFromJson(
+      Map<String, dynamic>.from(profileJson),
+    );
+    if (profile == null) return null;
+    return CloudCase(serverId: id, profile: profile);
+  }
+}

@@ -35,7 +35,8 @@ class SsgwInterpretation {
     SsgwResult result, {
     DivinationQuestion? question,
   }) {
-    final actualQuestion = question ??
+    final actualQuestion =
+        question ??
         const DivinationQuestion(
           rawText: '',
           topic: 'general',
@@ -96,11 +97,11 @@ class SsgwInterpretation {
       'health' => const ['健康', '疾病', '病情'],
       'study' => const ['学业', '考试', '功名'],
       _ => switch (question.intent) {
-          DivinationQuestionIntent.action => const ['行动建议', '建议'],
-          DivinationQuestionIntent.risk => const ['风险提醒', '提醒'],
-          DivinationQuestionIntent.timing => const ['时机', '应期', '时间'],
-          _ => const ['核心寓意', '此签核心', '解签总论'],
-        },
+        DivinationQuestionIntent.action => const ['行动建议', '建议'],
+        DivinationQuestionIntent.risk => const ['风险提醒', '提醒'],
+        DivinationQuestionIntent.timing => const ['时机', '应期', '时间'],
+        _ => const ['核心寓意', '此签核心', '解签总论'],
+      },
     };
     for (final preferred in preferredKeys) {
       for (final entry in details.entries) {
@@ -130,16 +131,12 @@ class SsgwInterpretation {
       '本签不足以可靠锁定具体地点或方位；与当前问题最接近的“$label”内容是：$detail',
     DivinationQuestionIntent.person =>
       '签文不能证明他人的真实内心或人物特征；可用于观察关系处境的“$label”内容是：$detail',
-    DivinationQuestionIntent.cause =>
-      '对于原因或阻力，可优先核对“$label”所说的现实条件：$detail',
+    DivinationQuestionIntent.cause => '对于原因或阻力，可优先核对“$label”所说的现实条件：$detail',
     DivinationQuestionIntent.trend =>
       '当前发展趋势可从“$label”理解为：$detail后续仍应根据真实反馈调整判断。',
-    DivinationQuestionIntent.action =>
-      '针对“下一步怎么做”，本签中最相关的“$label”建议是：$detail',
-    DivinationQuestionIntent.risk =>
-      '当前应优先留意“$label”中的提醒：$detail',
-    DivinationQuestionIntent.general =>
-      '结合所问事项，本签中最相关的“$label”内容是：$detail',
+    DivinationQuestionIntent.action => '针对“下一步怎么做”，本签中最相关的“$label”建议是：$detail',
+    DivinationQuestionIntent.risk => '当前应优先留意“$label”中的提醒：$detail',
+    DivinationQuestionIntent.general => '结合所问事项，本签中最相关的“$label”内容是：$detail',
   };
 
   Map<String, dynamic> toJson() => {

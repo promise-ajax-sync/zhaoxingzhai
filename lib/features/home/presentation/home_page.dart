@@ -13,25 +13,43 @@ class HomePage extends StatefulWidget {
     super.key,
     required this.onOpenFeature,
     this.onOpenRoutedQuestion,
+    this.fortuneHeadline,
+    this.fortuneListenable,
   });
 
   final ValueChanged<AppView> onOpenFeature;
   final void Function(String question, DivinationTool tool)?
   onOpenRoutedQuestion;
+  final String Function()? fortuneHeadline;
+  final Listenable? fortuneListenable;
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final TextEditingController _controller = TextEditingController();
   String _tool = '梅花易数';
   DivinationToolSelection? _selection;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      setState(() {});
+    }
   }
 
   void _submit() {
@@ -73,8 +91,13 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _FortuneStrip(
-                      onTap: () => widget.onOpenFeature(AppView.fortune),
+                    ListenableBuilder(
+                      listenable:
+                          widget.fortuneListenable ?? const _NeverListenable(),
+                      builder: (context, _) => _FortuneStrip(
+                        onTap: () => widget.onOpenFeature(AppView.fortune),
+                        headline: widget.fortuneHeadline?.call(),
+                      ),
                     ),
                     SizedBox(height: wide ? AppTheme.space9 : AppTheme.space7),
                     _Hero(onOpenMeritBox: () {}),
@@ -131,6 +154,16 @@ class _HomePageState extends State<HomePage> {
   };
 }
 
+class _NeverListenable implements Listenable {
+  const _NeverListenable();
+
+  @override
+  void addListener(VoidCallback listener) {}
+
+  @override
+  void removeListener(VoidCallback listener) {}
+}
+
 class _ToolRecommendation extends StatelessWidget {
   const _ToolRecommendation({required this.selection, required this.onOpen});
 
@@ -167,9 +200,10 @@ class _ToolRecommendation extends StatelessWidget {
 
 /// 今日运势条：图标 + 标题 + 摘要 + 色点 + 箭头。
 class _FortuneStrip extends StatelessWidget {
-  const _FortuneStrip({required this.onTap});
+  const _FortuneStrip({required this.onTap, this.headline});
 
   final VoidCallback onTap;
+  final String? headline;
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +252,7 @@ class _FortuneStrip extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '尚未接入：接入后显示当日渐卦与宜忌提要',
+                      headline ?? '查看今日整体状态、宜忌与行动建议',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

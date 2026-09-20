@@ -1,7 +1,7 @@
 {
   "_meta": {
     "source": "mingyu/packages/core/src/divination/hexagram-data.ts#hexagramsData",
-    "mingyuVersion": "0.4.0",
+    "sourceVersion": "0.4.0",
     "binaryOrder": "upper trigram then lower trigram; each trigram is bottom-to-top",
     "yaoCiOrder": "bottom-to-top (初爻到上爻)"
   },

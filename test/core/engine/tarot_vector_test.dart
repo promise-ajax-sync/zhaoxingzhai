@@ -15,7 +15,7 @@ void main() {
 
   setUpAll(TarotData.load);
 
-  group('塔罗 mingyu 0.4.0 golden 向量', () {
+  group('塔罗固定回归向量', () {
     for (final raw in cases) {
       final vector = Map<String, dynamic>.from(raw as Map);
       test(vector['caseId'] as String, () {

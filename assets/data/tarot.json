@@ -2,7 +2,7 @@
   "_meta": {
     "source": "mingyu/packages/core/src/divination/tarot-data.ts",
     "keywordsSource": "mingyu/packages/core/src/divination/tarot.ts#getCardKeywords",
-    "mingyuVersion": "0.4.0"
+    "sourceVersion": "0.4.0"
   },
   "cards": [
     {

@@ -154,5 +154,5 @@ void main() async {
   print('  - 支持正逆位判断');
   print('  - 支持元素互参关系');
   print('  - 支持逆位反证约束');
-  print('  - 符合 mingyu-core 的严格推理标准');
+  print('  - 符合项目的严格推理标准');
 }

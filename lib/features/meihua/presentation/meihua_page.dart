@@ -29,7 +29,8 @@ class MeihuaPage extends StatefulWidget {
   final Future<void> Function(
     MeihuaResult result,
     AiInterpretationResponse response,
-  )? onAiResponse;
+  )?
+  onAiResponse;
 
   /// 保留单参数回调，兼容旧调用方以及热重载前已创建的 Widget 实例。
   final Future<void> Function(MeihuaResult result)? onResult;
@@ -375,7 +376,9 @@ class _MeihuaPageState extends State<MeihuaPage> {
                 error: _aiError,
                 onRequest: _requestAiReading,
                 loadingText: '正在结合问题和梅花卦盘生成解读…',
-                idleText: 'AI 将基于当前问题和已经计算完成的梅花卦盘继续解读，不会重新起卦。',
+                idleText: _resultContext?.question.trim().isEmpty == true
+                    ? '未填写具体问题，AI 将依据本次梅花卦盘生成通用解读。'
+                    : 'AI 将基于当前问题和已经计算完成的梅花卦盘继续解读，不会重新起卦。',
                 actionKey: const ValueKey('meihua-ai-reading'),
               ),
             ],
@@ -801,7 +804,6 @@ class _MeihuaInterpretationView extends StatelessWidget {
     );
   }
 }
-
 
 class _HexagramCard extends StatelessWidget {
   const _HexagramCard({

@@ -26,7 +26,8 @@ class XiaoliurenPage extends StatefulWidget {
   final Future<void> Function(
     XiaoliurenData result,
     AiInterpretationResponse response,
-  )? onAiResponse;
+  )?
+  onAiResponse;
 
   const XiaoliurenPage({
     super.key,
@@ -56,10 +57,8 @@ class _XiaoliurenPageState extends State<XiaoliurenPage> {
   Object? _aiError;
   int _aiRequestGeneration = 0;
 
-  DivinationQuestion get _question => DivinationQuestion.parse(
-    _questionController.text.trim(),
-    topic: _topic,
-  );
+  DivinationQuestion get _question =>
+      DivinationQuestion.parse(_questionController.text.trim(), topic: _topic);
 
   @override
   void initState() {
@@ -258,7 +257,9 @@ class _XiaoliurenPageState extends State<XiaoliurenPage> {
                     error: _aiError,
                     onRequest: _requestAiReading,
                     loadingText: '正在结合问题、起课规则和三宫结果生成解读…',
-                    idleText: 'AI 将使用当前问题和已经计算完成的小六壬证据继续解读，不会重新起课。',
+                    idleText: _question.rawText.isEmpty
+                        ? '未填写具体问题，AI 将依据本次三宫结果和起课规则生成通用解读。'
+                        : 'AI 将使用当前问题和已经计算完成的小六壬证据继续解读，不会重新起课。',
                     actionKey: const ValueKey('xiaoliuren-ai-reading'),
                   ),
                 ],

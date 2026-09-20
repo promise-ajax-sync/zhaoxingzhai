@@ -1,5 +1,5 @@
 /// 塔罗占卜页面
-/// 参考 SYDF TarotView.vue
+/// 塔罗占卜页面。
 library;
 
 import 'package:flutter/foundation.dart';
@@ -33,7 +33,8 @@ class TarotPage extends StatefulWidget {
   final Future<void> Function(
     TarotDrawResult result,
     AiInterpretationResponse response,
-  )? onAiResponse;
+  )?
+  onAiResponse;
 
   const TarotPage({
     super.key,
@@ -381,7 +382,9 @@ class _TarotPageState extends State<TarotPage> {
                       error: _aiError,
                       onRequest: _requestAiReading,
                       loadingText: '正在结合问题、牌阵、牌位和正逆位生成解读…',
-                      idleText: 'AI 将使用当前问题和已抽取的牌阵证据继续解读，不会重新抽牌。',
+                      idleText: _question.rawText.isEmpty
+                          ? '未填写具体问题，AI 将依据本次牌阵、牌位和正逆位生成通用解读。'
+                          : 'AI 将使用当前问题和已抽取的牌阵证据继续解读，不会重新抽牌。',
                       actionKey: const ValueKey('tarot-ai-reading'),
                     ),
                     const SizedBox(height: AppTheme.space5),

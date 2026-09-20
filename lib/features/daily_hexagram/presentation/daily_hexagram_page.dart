@@ -29,14 +29,16 @@ class DailyHexagramPage extends StatefulWidget {
   final Future<void> Function(
     DailyHexagramResult result,
     DivinationQuestion question,
-  )? onResultWithQuestion;
+  )?
+  onResultWithQuestion;
   final ValueListenable<RoutedDivinationDraft?>? routedDraft;
   final AiInterpretationService? aiService;
   final String Function()? answerStyle;
   final Future<void> Function(
     DailyHexagramResult result,
     AiInterpretationResponse response,
-  )? onAiResponse;
+  )?
+  onAiResponse;
 
   @override
   State<DailyHexagramPage> createState() => _DailyHexagramPageState();
@@ -58,10 +60,8 @@ class _DailyHexagramPageState extends State<DailyHexagramPage> {
   bool _aiLoading = false;
   int _aiGeneration = 0;
 
-  DivinationQuestion get _question => DivinationQuestion.parse(
-    _questionController.text.trim(),
-    topic: _topic,
-  );
+  DivinationQuestion get _question =>
+      DivinationQuestion.parse(_questionController.text.trim(), topic: _topic);
 
   @override
   void initState() {
@@ -163,9 +163,8 @@ class _DailyHexagramPageState extends State<DailyHexagramPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('解读已更新，但历史记录保存失败：$error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('解读已更新，但历史记录保存失败：$error')));
     }
   }
 
@@ -184,16 +183,15 @@ class _DailyHexagramPageState extends State<DailyHexagramPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已按当前问题更新解读，卦象保持不变')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('已按当前问题更新解读，卦象保持不变')));
   }
 
   Future<void> _requestAiReading() async {
     final service = widget.aiService;
     final result = _result;
     final question = _question;
-    if (service == null || result == null || question.rawText.isEmpty) {
+    if (service == null || result == null) {
       return;
     }
     final interpretation = DailyHexagramInterpretation.build(
@@ -416,11 +414,12 @@ class _DailyHexagramPageState extends State<DailyHexagramPage> {
               response: _aiResponse,
               error: _aiError,
               loading: _aiLoading,
-              enabled:
-                  widget.aiService != null && _question.rawText.isNotEmpty,
+              enabled: widget.aiService != null,
               onRequest: _requestAiReading,
               loadingText: '正在结合问题和卦盘生成解读…',
-              idleText: 'AI 将使用当前问题和已计算的结构化证据生成进一步解读，不会重新起卦。',
+              idleText: _question.rawText.isEmpty
+                  ? '未填写具体问题，AI 将依据本卦、动爻、互卦和变卦生成通用解读。'
+                  : 'AI 将使用当前问题和已计算的结构化证据生成进一步解读，不会重新起卦。',
               actionKey: const ValueKey('daily-hexagram-ai-reading'),
             ),
           ],
@@ -429,7 +428,6 @@ class _DailyHexagramPageState extends State<DailyHexagramPage> {
     );
   }
 }
-
 
 class _InterpretationCard extends StatelessWidget {
   const _InterpretationCard({

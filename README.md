@@ -1,6 +1,6 @@
 # 昭星斋（Zhaoxingzhai）
 
-昭星斋是一个 Flutter 东方术数与占卜应用。算法、数据结构和兼容性测试以本地 `mingyu 0.4.0` 为基准，产品结构与交互参考 `sydf`。
+昭星斋是一个 Flutter 东方术数与占卜应用，包含传统黄历、梅花易数、小六壬、塔罗、灵签与 AI 解读等功能。
 
 > 所有排盘与占卜结果仅供传统文化研究和休闲参考，不构成医疗、心理、法律、投资等专业建议。
 
@@ -40,7 +40,7 @@
   - 农历、四柱干支、计算轨迹、结果 meta 与结构化 evidence
 - 塔罗占卜
   - 78 张塔罗牌
-  - 与 mingyu 0.4.0 同步的 18 种牌阵
+  - 18 种塔罗牌阵
   - 自动抽牌与实体牌手动录入页面
   - 正逆位、seed/replay 随机轨迹和证据分析
 
@@ -72,6 +72,14 @@ flutter pub get
 flutter run
 ```
 
+Flutter Web 开发时请固定使用同一个浏览器源，避免本地历史因端口或主机名变化而看似丢失：
+
+```powershell
+.\scripts\run_web.ps1
+```
+
+固定地址为 `http://127.0.0.1:5173`，AI 后端地址为 `http://127.0.0.1:8000`。
+
 检查项目：
 
 ```bash
@@ -80,7 +88,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify_foundation.ps1
 
 只做分析和测试、不构建产物时追加 `-SkipBuild`。
 
-从本地 mingyu 重新同步塔罗牌面、牌阵和关键词数据：
+从本地参考数据源重新生成塔罗牌面、牌阵和关键词数据：
 
 ```bash
 node scripts/export_data.js

@@ -34,9 +34,7 @@ void main() {
   });
 
   test('小六壬按是否问题生成直接回应与结构化证据', () {
-    final result = generateXiaoliuren(
-      customDate: DateTime(2026, 9, 17, 12),
-    );
+    final result = generateXiaoliuren(customDate: DateTime(2026, 9, 17, 12));
     final question = DivinationQuestion.parse('这件事近期会不会成功');
     final reading = XiaoliurenInterpretation.build(result, question: question);
 

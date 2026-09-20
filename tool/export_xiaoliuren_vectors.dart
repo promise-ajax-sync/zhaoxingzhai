@@ -41,8 +41,9 @@ Future<void> main(List<String> arguments) async {
     throw const FormatException('必须提供 --vectors 和 --output。');
   }
 
-  final fixture = jsonDecode(await File(fixturePath).readAsString())
-      as Map<String, dynamic>;
+  final fixture = jsonDecode(
+    await File(fixturePath).readAsString(),
+  ) as Map<String, dynamic>;
   final vectors = fixture['vectors'] as List<dynamic>;
   final results = <Map<String, dynamic>>[];
 
@@ -62,13 +63,7 @@ Future<void> main(List<String> arguments) async {
   final output = File(outputPath);
   await output.parent.create(recursive: true);
   await output.writeAsString(
-    '${const JsonEncoder.withIndent('  ').convert({
-      'schemaVersion': 1,
-      'algorithmId': fixture['algorithmId'],
-      'reference': 'zhaoxingzhai-dart',
-      'generatedAt': DateTime.now().toUtc().toIso8601String(),
-      'results': results,
-    })}\n',
+    '${const JsonEncoder.withIndent('  ').convert({'schemaVersion': 1, 'algorithmId': fixture['algorithmId'], 'reference': 'zhaoxingzhai-dart', 'generatedAt': DateTime.now().toUtc().toIso8601String(), 'results': results})}\n',
   );
   stdout.writeln('已导出 ${results.length} 条 Dart 小六壬向量：$outputPath');
 }

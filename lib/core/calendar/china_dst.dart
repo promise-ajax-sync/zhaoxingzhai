@@ -1,5 +1,5 @@
 /// 中国夏令时（1986-1991）检测与校正
-/// 
+///
 /// 中国历史钟表时间修正属于公共日历能力，供八字、紫微、真太阳时等统一复用。
 library;
 
@@ -74,8 +74,18 @@ ChinaDstCheckResult checkChinaDst(
   for (final range in _chinaDstRanges) {
     if (range.start.$1 != year) continue;
 
-    final startMs = _toUtcMs(range.start.$1, range.start.$2, range.start.$3, range.start.$4);
-    final endMs = _toUtcMs(range.end.$1, range.end.$2, range.end.$3, range.end.$4);
+    final startMs = _toUtcMs(
+      range.start.$1,
+      range.start.$2,
+      range.start.$3,
+      range.start.$4,
+    );
+    final endMs = _toUtcMs(
+      range.end.$1,
+      range.end.$2,
+      range.end.$3,
+      range.end.$4,
+    );
 
     // 不存在时段：开始前 1 小时
     if (t >= startMs - _hourMs && t < startMs) {
@@ -114,7 +124,12 @@ bool isDateInChinaDstRange(int year, int month, int day) {
     if (range.start.$1 != year) continue;
 
     final startMs = _toUtcMs(range.start.$1, range.start.$2, range.start.$3, 2);
-    final endMs = _toUtcMs(range.end.$1, range.end.$2, range.end.$3, range.end.$4);
+    final endMs = _toUtcMs(
+      range.end.$1,
+      range.end.$2,
+      range.end.$3,
+      range.end.$4,
+    );
 
     if (dayStart < endMs && dayEnd > startMs) {
       return true;

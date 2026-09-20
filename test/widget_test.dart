@@ -306,11 +306,11 @@ void main() {
     expect(find.text('牌阵状态'), findsOneWidget);
 
     // 案例页与历史是两个独立入口：案例页只管理占卜主体，不展示结果。
-    await tester.tap(find.text('案例'));
+    await tester.tap(find.text('角色'));
     await tester.pumpAndSettle();
 
     expect(find.byType(CasesPage), findsOneWidget);
-    expect(find.text('还没有案例'), findsOneWidget);
+    expect(find.text('还没有角色'), findsOneWidget);
 
     // 历史记录作为独立抽屉打开。
     await tester.tap(find.byTooltip('记录'));
@@ -323,10 +323,10 @@ void main() {
   testWidgets('可以新建案例并自动选中', (WidgetTester tester) async {
     await _pumpApp(tester, _wideSize);
 
-    await tester.tap(find.text('案例'));
+    await tester.tap(find.text('角色'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('新建案例'));
+    await tester.tap(find.text('新建角色'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, '测试案例');
@@ -338,12 +338,12 @@ void main() {
     expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
 
     // 未填名称时不允许保存。
-    await tester.tap(find.text('新建案例'));
+    await tester.tap(find.text('新建角色'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
 
-    expect(find.text('请填写案例名称'), findsOneWidget);
+    expect(find.text('请填写角色名称'), findsOneWidget);
   });
 
   testWidgets('塔罗数据加载失败后可以重试', (WidgetTester tester) async {

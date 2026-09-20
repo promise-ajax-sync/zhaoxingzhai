@@ -1,9 +1,7 @@
 import 'package:zhaoxingzhai/core/ai/ai_interpretation_models.dart';
 
 abstract interface class AiInterpretationService {
-  Future<AiInterpretationResponse> interpret(
-    AiInterpretationRequest request,
-  );
+  Future<AiInterpretationResponse> interpret(AiInterpretationRequest request);
 }
 
 class ResilientAiInterpretationService implements AiInterpretationService {

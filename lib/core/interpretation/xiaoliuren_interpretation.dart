@@ -39,7 +39,8 @@ class XiaoliurenInterpretation {
     XiaoliurenData result, {
     DivinationQuestion? question,
   }) {
-    final actualQuestion = question ??
+    final actualQuestion =
+        question ??
         const DivinationQuestion(
           rawText: '',
           topic: 'general',
@@ -54,14 +55,17 @@ class XiaoliurenInterpretation {
           '时宫${result.sequence['hour']!.name}。月宫、日宫是顺数轨迹，只有时宫作为本次主证。',
       background:
           '月宫${result.sequence['month']!.name}是按农历月份确定的起算位置，不解释为现实背景或事情起因。',
-      process:
-          '日宫${result.sequence['day']!.name}是从月宫继续顺数所得的中间位置，不解释为现实过程或日运。',
+      process: '日宫${result.sequence['day']!.name}是从月宫继续顺数所得的中间位置，不解释为现实过程或日运。',
       outcome: '此刻落点为“${result.sequence['hour']!.name}”：${hour.meaning}',
       action: hour.action,
       riskReminder: '${hour.risk}六宫用于整理当下节奏，不代表现实事件必然发生，重要决定仍需核对实际信息。',
       questionIntent: actualQuestion.intent.id,
       questionIntentLabel: actualQuestion.intent.label,
-      directAnswer: _directAnswer(actualQuestion.intent, result.primary.name, hour),
+      directAnswer: _directAnswer(
+        actualQuestion.intent,
+        result.primary.name,
+        hour,
+      ),
       evidence: XiaoliurenEvidenceBuilder.build(result, actualQuestion),
     );
   }
@@ -73,24 +77,30 @@ class XiaoliurenInterpretation {
   ) {
     final favorable = {'大安', '速喜', '小吉'}.contains(palace);
     return switch (intent) {
-      DivinationQuestionIntent.yesNo => favorable
-          ? '就“是否”而言，$palace偏向有条件地可行，但仍需满足现实条件，不能理解为必然成功。${reading.action}'
-          : '就“是否”而言，$palace提示目前不宜直接作肯定判断，先处理阻力或等待条件变清楚。${reading.action}',
+      DivinationQuestionIntent.yesNo =>
+        favorable
+            ? '就“是否”而言，$palace偏向有条件地可行，但仍需满足现实条件，不能理解为必然成功。${reading.action}'
+            : '就“是否”而言，$palace提示目前不宜直接作肯定判断，先处理阻力或等待条件变清楚。${reading.action}',
       DivinationQuestionIntent.timing => switch (palace) {
-          '速喜' => '时间节奏偏快，近期出现反馈的可能性较高，但不提供固定日期。',
-          '大安' => '时间节奏稳定，适合按既定安排推进，不必催促。',
-          '留连' => '时间节奏偏慢，容易反复或延期，先预留缓冲。',
-          '赤口' => '先等待争议或沟通摩擦缓和，再选择时机。',
-          '小吉' => '会以小步推进的方式逐渐明朗，适合边做边确认。',
-          _ => '当前条件尚未成形，暂时无法给出可靠应期，宜稍后复核现实进展。',
-        },
-      DivinationQuestionIntent.cause => '从时宫$palace看，当前主要阻力或推动力可概括为：${reading.meaning}${reading.risk}',
+        '速喜' => '时间节奏偏快，近期出现反馈的可能性较高，但不提供固定日期。',
+        '大安' => '时间节奏稳定，适合按既定安排推进，不必催促。',
+        '留连' => '时间节奏偏慢，容易反复或延期，先预留缓冲。',
+        '赤口' => '先等待争议或沟通摩擦缓和，再选择时机。',
+        '小吉' => '会以小步推进的方式逐渐明朗，适合边做边确认。',
+        _ => '当前条件尚未成形，暂时无法给出可靠应期，宜稍后复核现实进展。',
+      },
+      DivinationQuestionIntent.cause =>
+        '从时宫$palace看，当前主要阻力或推动力可概括为：${reading.meaning}${reading.risk}',
       DivinationQuestionIntent.action => '针对“怎么做”，当前最合适的行动是：${reading.action}',
       DivinationQuestionIntent.risk => '当前需要优先防范的是：${reading.risk}',
-      DivinationQuestionIntent.trend => '短期趋势落在$palace：${reading.meaning}建议用后续真实反馈验证，而不是一次性下结论。',
-      DivinationQuestionIntent.location => '小六壬此次结果不足以可靠锁定具体地点或方位；能确认的只是当前节奏落在$palace。${reading.action}',
-      DivinationQuestionIntent.person => '小六壬不能证明某个人的真实内心或具体特征；只能把当前互动节奏概括为$palace。${reading.meaning}',
-      DivinationQuestionIntent.general => '本次时宫为$palace，当前判断是：${reading.meaning}${reading.action}',
+      DivinationQuestionIntent.trend =>
+        '短期趋势落在$palace：${reading.meaning}建议用后续真实反馈验证，而不是一次性下结论。',
+      DivinationQuestionIntent.location =>
+        '小六壬此次结果不足以可靠锁定具体地点或方位；能确认的只是当前节奏落在$palace。${reading.action}',
+      DivinationQuestionIntent.person =>
+        '小六壬不能证明某个人的真实内心或具体特征；只能把当前互动节奏概括为$palace。${reading.meaning}',
+      DivinationQuestionIntent.general =>
+        '本次时宫为$palace，当前判断是：${reading.meaning}${reading.action}',
     };
   }
 

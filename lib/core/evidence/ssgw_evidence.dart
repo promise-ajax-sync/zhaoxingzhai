@@ -57,7 +57,8 @@ abstract final class SsgwEvidenceBuilder {
           detail: '签文解读不得替代医疗、法律、财务或其他专业判断。',
         ),
       ],
-      summary: '以第${result.sign.number}签、签诗原文和与问题最相关的“$selectedDetailLabel”字段为依据。',
+      summary:
+          '以第${result.sign.number}签、签诗原文和与问题最相关的“$selectedDetailLabel”字段为依据。',
     );
   }
 }

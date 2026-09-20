@@ -52,7 +52,7 @@ fs.writeFileSync(
   `${JSON.stringify({
     _meta: {
       source: 'mingyu/packages/core/src/divination/hexagram-data.ts#hexagramsData',
-      mingyuVersion: mingyuPackage.version,
+    sourceVersion: mingyuPackage.version,
       binaryOrder: 'upper trigram then lower trigram; each trigram is bottom-to-top',
       yaoCiOrder: 'bottom-to-top (初爻到上爻)',
     },

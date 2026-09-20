@@ -82,7 +82,7 @@ class _CasesPageState extends State<CasesPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除案例？'),
+        title: const Text('删除角色？'),
         content: Text(
           '将删除「${profile.name}」。\n'
           '已经保存的历史记录不受影响，它们保存的是当时的快照。',
@@ -107,7 +107,7 @@ class _CasesPageState extends State<CasesPage> {
     final repository = widget.repository;
 
     if (!repository.isLoaded) {
-      return const AppLoadingIndicator(message: '读取本地案例...');
+      return const AppLoadingIndicator(message: '读取本地角色...');
     }
 
     return AppPageContainer(
@@ -115,27 +115,27 @@ class _CasesPageState extends State<CasesPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           AppPageHeading(
-            title: '案例',
-            subtitle: '案例是可反复使用的占卜主体，历史记录保存的是它的快照',
+            title: '角色',
+            subtitle: '角色是可反复使用的个人资料，历史记录保存的是当时的资料快照',
             trailing: FilledButton.icon(
               onPressed: _create,
               icon: const Icon(Icons.add),
-              label: const Text('新建案例'),
+              label: const Text('新建角色'),
             ),
           ),
           if (repository.loadError != null)
             Padding(
               padding: const EdgeInsets.only(bottom: AppTheme.space4),
               child: Text(
-                '部分案例读取失败：${repository.loadError}',
+                '部分角色读取失败：${repository.loadError}',
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
           if (repository.cases.isEmpty)
             const AppEmptyState(
               icon: Icons.book_outlined,
-              title: '还没有案例',
-              subtitle: '新建一个案例后，排盘、合盘等需要出生资料的功能就能直接引用它。',
+              title: '还没有角色',
+              subtitle: '新建一个角色后，排盘、合盘等需要出生资料的功能就能直接引用它。',
             )
           else
             ...repository.cases.map(
@@ -145,7 +145,9 @@ class _CasesPageState extends State<CasesPage> {
                   profile: profile,
                   selected: widget.selection.selectedId == profile.id,
                   onSelect: () => widget.selection.select(
-                    widget.selection.selectedId == profile.id ? null : profile.id,
+                    widget.selection.selectedId == profile.id
+                        ? null
+                        : profile.id,
                   ),
                   onEdit: () => _edit(profile),
                   onDelete: () => _confirmDelete(profile),
@@ -196,12 +198,12 @@ class _CaseCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: '编辑案例',
+                tooltip: '编辑角色',
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
               ),
               IconButton(
-                tooltip: '删除案例',
+                tooltip: '删除角色',
                 onPressed: onDelete,
                 icon: const Icon(Icons.delete_outline),
               ),
@@ -293,8 +295,7 @@ class _CaseEditorDialogState extends State<_CaseEditorDialog> {
     _gender = initial?.gender ?? CaseGender.unspecified;
     _calendarType = initial?.calendarType ?? CaseCalendarType.solar;
     _isLeapMonth = initial?.isLeapMonth ?? false;
-    _birthDateTime =
-        initial?.birthDateTime ?? DateTime(1990, 1, 1, 12);
+    _birthDateTime = initial?.birthDateTime ?? DateTime(1990, 1, 1, 12);
   }
 
   @override
@@ -351,9 +352,8 @@ class _CaseEditorDialogState extends State<_CaseEditorDialog> {
   void _submit() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请填写案例名称')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('请填写角色名称')));
       return;
     }
 
@@ -404,10 +404,11 @@ class _CaseEditorDialogState extends State<_CaseEditorDialog> {
     String two(int value) => value.toString().padLeft(2, '0');
     final dateLabel =
         '${_birthDateTime.year}-${two(_birthDateTime.month)}-${two(_birthDateTime.day)}';
-    final timeLabel = '${two(_birthDateTime.hour)}:${two(_birthDateTime.minute)}';
+    final timeLabel =
+        '${two(_birthDateTime.hour)}:${two(_birthDateTime.minute)}';
 
     return AlertDialog(
-      title: Text(isEdit ? '编辑案例' : '新建案例'),
+      title: Text(isEdit ? '编辑角色' : '新建角色'),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(

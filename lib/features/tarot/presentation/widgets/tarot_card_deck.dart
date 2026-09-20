@@ -34,10 +34,7 @@ class TarotCardDeck extends StatelessWidget {
                     top: index * 4.0,
                     child: Transform.rotate(
                       angle: (index - 1) * 0.02,
-                      child: _buildCard(
-                        context,
-                        opacity: 0.3 + (index * 0.2),
-                      ),
+                      child: _buildCard(context, opacity: 0.3 + (index * 0.2)),
                     ),
                   );
                 }),
@@ -53,10 +50,7 @@ class TarotCardDeck extends StatelessWidget {
                         offset: Offset(0, -100 * value),
                         child: Transform.rotate(
                           angle: 0.5 * value,
-                          child: Opacity(
-                            opacity: 1 - value,
-                            child: child,
-                          ),
+                          child: Opacity(opacity: 1 - value, child: child),
                         ),
                       );
                     },
@@ -164,20 +158,12 @@ class _CardBackPainter extends CustomPainter {
     // 绘制装饰线条
     for (int i = 0; i < 8; i++) {
       final y = size.height / 8 * i;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        paint,
-      );
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
 
     for (int i = 0; i < 5; i++) {
       final x = size.width / 5 * i;
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
-        paint,
-      );
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
 
     // 绘制对角线
@@ -186,11 +172,7 @@ class _CardBackPainter extends CustomPainter {
       Offset(size.width, size.height),
       paint..strokeWidth = 0.8,
     );
-    canvas.drawLine(
-      Offset(size.width, 0),
-      Offset(0, size.height),
-      paint,
-    );
+    canvas.drawLine(Offset(size.width, 0), Offset(0, size.height), paint);
   }
 
   @override

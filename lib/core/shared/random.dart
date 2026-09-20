@@ -1,6 +1,6 @@
 /// 核心随机数系统
 ///
-/// 设计参考 mingyu-core/src/shared/random.ts，但**不追求与上游位级一致**。
+/// 昭星斋占测引擎的可重放随机上下文。
 /// 本实现自成一个确定性体系：同一 seed 在同一实现版本内跨设备、跨平台结果恒定。
 ///
 /// 支持四种随机模式：system（系统随机）、seeded（种子随机）、
@@ -17,6 +17,7 @@
 library;
 
 import 'dart:math' as math;
+
 import 'result.dart';
 
 /// 随机序列兼容版本。改变哈希、PRNG、取整或拒绝采样规则时必须递增。
@@ -28,10 +29,10 @@ typedef RandomSource = double Function();
 
 /// 随机模式
 enum RandomMode {
-  system,  // 系统级安全随机
-  seeded,  // 种子随机
-  custom,  // 自定义随机源
-  replay,  // 重放模式
+  system, // 系统级安全随机
+  seeded, // 种子随机
+  custom, // 自定义随机源
+  replay, // 重放模式
 }
 
 /// 随机轨迹（用于记录和重放）
@@ -39,7 +40,7 @@ class RandomTrace {
   final String algorithmId;
   final int algorithmVersion;
   final RandomMode mode;
-  final dynamic seed;  // String 或 int
+  final dynamic seed; // String 或 int
   final List<double> samples;
 
   const RandomTrace({
@@ -67,12 +68,12 @@ class RandomTrace {
   }
 
   Map<String, dynamic> toJson() => {
-        'algorithmId': algorithmId,
-        'algorithmVersion': algorithmVersion,
-        'mode': mode.name,
-        if (seed != null) 'seed': seed,
-        'samples': samples,
-      };
+    'algorithmId': algorithmId,
+    'algorithmVersion': algorithmVersion,
+    'mode': mode.name,
+    if (seed != null) 'seed': seed,
+    'samples': samples,
+  };
 
   factory RandomTrace.fromJson(Map<String, dynamic> json) {
     return RandomTrace(
@@ -93,10 +94,7 @@ class RandomContext {
   final RandomSource random;
   final RandomTrace Function() getTrace;
 
-  const RandomContext({
-    required this.random,
-    required this.getTrace,
-  });
+  const RandomContext({required this.random, required this.getTrace});
 }
 
 /// 32位无符号整数范围
@@ -120,7 +118,7 @@ double secureRandomFloat() {
 /// 使用拒绝采样生成无模偏差的随机整数
 int secureRandomInt(int maxExclusive) {
   if (maxExclusive <= 0 || maxExclusive > _uint32Range) {
-    throw MingyuCoreError(
+    throw DivinationEngineError(
       code: 'RANDOM_SECURE_RANGE_INVALID',
       category: ErrorCategory.validation,
       message: '安全随机整数范围必须是 1 至 4294967296 之间的整数',
@@ -158,7 +156,7 @@ int _imul(int a, int b) {
 /// 哈希种子（FNV-1a 算法）
 int _hashSeed(dynamic seed) {
   if (seed is! String && seed is! int) {
-    throw MingyuCoreError(
+    throw DivinationEngineError(
       code: 'RANDOM_SEED_INVALID',
       category: ErrorCategory.validation,
       message: '随机种子必须是有限数字或文本',
@@ -189,7 +187,8 @@ RandomSource createSeededRandom(dynamic seed) {
     value = _imul(value ^ (value >> 15), value | 1);
     // 加法会产生 33 位中间值，必须在异或前先截断到 32 位，
     // 否则高位会漏进异或结果（此前版本即因此与预期序列分叉）。
-    final mixed = (value + _imul(value ^ (value >> 7), value | 61)) & 0xFFFFFFFF;
+    final mixed =
+        (value + _imul(value ^ (value >> 7), value | 61)) & 0xFFFFFFFF;
     value = (value ^ mixed) & 0xFFFFFFFF;
 
     return (value ^ (value >> 14)) / 4294967296.0;
@@ -199,7 +198,7 @@ RandomSource createSeededRandom(dynamic seed) {
 /// 断言随机样本有效性
 double _assertRandomSample(double value) {
   if (!value.isFinite || value < 0 || value >= 1) {
-    throw MingyuCoreError(
+    throw DivinationEngineError(
       code: 'RANDOM_SAMPLE_INVALID',
       category: ErrorCategory.validation,
       message: '随机源必须返回大于等于 0 且小于 1 的数字',
@@ -216,12 +215,14 @@ RandomContext createRandomContext({
   RandomSource? random,
 }) {
   // 验证参数冲突
-  final optionsCount = [seed != null, replay != null, random != null]
-      .where((x) => x)
-      .length;
-  
+  final optionsCount = [
+    seed != null,
+    replay != null,
+    random != null,
+  ].where((x) => x).length;
+
   if (optionsCount > 1) {
-    throw MingyuCoreError(
+    throw DivinationEngineError(
       code: 'RANDOM_OPTIONS_CONFLICT',
       category: ErrorCategory.validation,
       message: 'seed、replay 与自定义随机源只能提供一种',
@@ -234,21 +235,21 @@ RandomContext createRandomContext({
 
   if (replay != null) {
     if (replay.isEmpty) {
-      throw MingyuCoreError(
+      throw DivinationEngineError(
         code: 'RANDOM_REPLAY_REQUIRED',
         category: ErrorCategory.validation,
         message: '随机重放样本必须是非空数组',
         field: 'replay',
       );
     }
-    
+
     final samples = replay.map(_assertRandomSample).toList();
     int index = 0;
     mode = RandomMode.replay;
-    
+
     source = () {
       if (index >= samples.length) {
-        throw MingyuCoreError(
+        throw DivinationEngineError(
           code: 'RANDOM_REPLAY_EXHAUSTED',
           category: ErrorCategory.validation,
           message: '随机重放样本已用尽',
@@ -274,18 +275,15 @@ RandomContext createRandomContext({
       samples.add(value);
       return value;
     },
-    getTrace: () => RandomTrace(
-      mode: mode,
-      seed: traceSeed,
-      samples: List.from(samples),
-    ),
+    getTrace: () =>
+        RandomTrace(mode: mode, seed: traceSeed, samples: List.from(samples)),
   );
 }
 
 /// 生成随机整数 [0, maxExclusive)
 int randomInt(int maxExclusive, RandomSource rng) {
   if (maxExclusive <= 0 || maxExclusive > _uint32Range) {
-    throw MingyuCoreError(
+    throw DivinationEngineError(
       code: 'RANDOM_RANGE_INVALID',
       category: ErrorCategory.validation,
       message: '随机整数范围必须是 1 至 4294967296 之间的整数',
@@ -294,11 +292,11 @@ int randomInt(int maxExclusive, RandomSource rng) {
 
   final bucketSize = _uint32Range ~/ maxExclusive;
   final acceptanceLimit = bucketSize * maxExclusive;
-  
+
   int candidate;
   do {
     candidate = (_assertRandomSample(rng()) * _uint32Range).floor();
   } while (candidate >= acceptanceLimit);
-  
+
   return candidate ~/ bucketSize;
 }

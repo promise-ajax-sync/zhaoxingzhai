@@ -1,13 +1,16 @@
 /// 日期验证工具
-/// 
+///
 /// 提供日期有效性检查、时间戳创建等基础功能
 library;
 
 /// 验证钟表时间是否有效（24小时制）
 bool isValidClockTime(int hour, int minute, int second) {
-  return hour >= 0 && hour <= 23 &&
-         minute >= 0 && minute <= 59 &&
-         second >= 0 && second <= 59;
+  return hour >= 0 &&
+      hour <= 23 &&
+      minute >= 0 &&
+      minute <= 59 &&
+      second >= 0 &&
+      second <= 59;
 }
 
 /// 获取公历月份的天数
@@ -15,13 +18,13 @@ int daysInGregorianMonth(int year, int month) {
   if (month < 1 || month > 12) {
     throw ArgumentError('月份必须在 1-12 之间');
   }
-  
+
   const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  
+
   if (month == 2 && isLeapYear(year)) {
     return 29;
   }
-  
+
   return daysInMonth[month - 1];
 }
 
@@ -40,8 +43,14 @@ int createUtcTimestamp(
   int minute,
   int second,
 ) {
-  return DateTime.utc(year, month + 1, day, hour, minute, second)
-      .millisecondsSinceEpoch;
+  return DateTime.utc(
+    year,
+    month + 1,
+    day,
+    hour,
+    minute,
+    second,
+  ).millisecondsSinceEpoch;
 }
 
 /// 验证公历日期

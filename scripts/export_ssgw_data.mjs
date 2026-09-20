@@ -30,7 +30,7 @@ fs.writeFileSync(
     _meta: {
       source: 'mingyu/packages/core/src/divination/ssgw-data/index.ts#SSGW_SIGNS',
       sourceData: 'ssgw-data/signs-full.ts + enrichSsgwSign',
-      mingyuVersion: mingyuPackage.version,
+    sourceVersion: mingyuPackage.version,
     },
     signs: SSGW_SIGNS,
   }, null, 2)}\n`,

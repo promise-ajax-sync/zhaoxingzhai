@@ -4,6 +4,7 @@ import 'package:zhaoxingzhai/core/widgets/app_widgets.dart';
 import 'package:zhaoxingzhai/features/history/data/daily_hexagram_history.dart';
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
 import 'package:zhaoxingzhai/features/history/data/meihua_history.dart';
+import 'package:zhaoxingzhai/features/history/data/history_sync_state.dart';
 
 class HistoryPage extends StatefulWidget {
   final DivinationHistoryRepository repository;
@@ -15,6 +16,10 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String? _typeFilter;
+  String? _roleFilter;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +40,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   void dispose() {
     widget.repository.removeListener(_onRepositoryChanged);
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -66,6 +72,46 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     final repository = widget.repository;
+    final allRecords = repository.records;
+    final roleNames =
+        allRecords
+            .expand(_recordRoleNames)
+            .where((name) => name.trim().isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    final typeIds = allRecords.map((record) => record.type).toSet().toList()
+      ..sort();
+    final effectiveTypeFilter = typeIds.contains(_typeFilter)
+        ? _typeFilter
+        : null;
+    final effectiveRoleFilter = roleNames.contains(_roleFilter)
+        ? _roleFilter
+        : null;
+    final query = _searchController.text.trim().toLowerCase();
+    final records = allRecords
+        .where((record) {
+          if (effectiveTypeFilter != null &&
+              record.type != effectiveTypeFilter) {
+            return false;
+          }
+          final names = _recordRoleNames(record);
+          if (effectiveRoleFilter != null &&
+              !names.contains(effectiveRoleFilter)) {
+            return false;
+          }
+          if (query.isEmpty) {
+            return true;
+          }
+          final searchable = [
+            record.typeLabel,
+            record.title,
+            record.summary,
+            ...names,
+          ].join(' ').toLowerCase();
+          return searchable.contains(query);
+        })
+        .toList(growable: false);
 
     // 外壳（AppShell）已提供顶栏与背景，这里只渲染页面内容。
     if (!repository.isLoaded) {
@@ -78,7 +124,7 @@ class _HistoryPageState extends State<HistoryPage> {
         children: [
           AppPageHeading(
             title: '历史记录',
-            subtitle: '仅保存在当前设备，最多保留 100 条',
+            subtitle: '本地优先保存并后台同步，最多保留 100 条',
             trailing: repository.records.isEmpty
                 ? null
                 : IconButton(
@@ -95,19 +141,111 @@ class _HistoryPageState extends State<HistoryPage> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
+          if (allRecords.isNotEmpty) ...[
+            AppCard(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 260,
+                    child: TextField(
+                      key: const ValueKey('history-search'),
+                      controller: _searchController,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: '搜索历史',
+                        hintText: '标题、摘要或角色名称',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 170,
+                    child: DropdownButtonFormField<String>(
+                      key: ValueKey(
+                        'history-type-filter-${effectiveTypeFilter ?? 'all'}',
+                      ),
+                      initialValue: effectiveTypeFilter ?? '',
+                      decoration: const InputDecoration(labelText: '术式'),
+                      items: [
+                        const DropdownMenuItem(value: '', child: Text('全部术式')),
+                        for (final type in typeIds)
+                          DropdownMenuItem(
+                            value: type,
+                            child: Text(
+                              allRecords
+                                  .firstWhere((item) => item.type == type)
+                                  .typeLabel,
+                            ),
+                          ),
+                      ],
+                      onChanged: (value) => setState(
+                        () => _typeFilter = value == null || value.isEmpty
+                            ? null
+                            : value,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 180,
+                    child: DropdownButtonFormField<String>(
+                      key: ValueKey(
+                        'history-role-filter-${effectiveRoleFilter ?? 'all'}',
+                      ),
+                      initialValue: effectiveRoleFilter ?? '',
+                      decoration: const InputDecoration(labelText: '角色'),
+                      items: [
+                        const DropdownMenuItem(value: '', child: Text('全部角色')),
+                        for (final name in roleNames)
+                          DropdownMenuItem(value: name, child: Text(name)),
+                      ],
+                      onChanged: (value) => setState(
+                        () => _roleFilter = value == null || value.isEmpty
+                            ? null
+                            : value,
+                      ),
+                    ),
+                  ),
+                  if (query.isNotEmpty ||
+                      effectiveTypeFilter != null ||
+                      effectiveRoleFilter != null)
+                    TextButton.icon(
+                      onPressed: () => setState(() {
+                        _searchController.clear();
+                        _typeFilter = null;
+                        _roleFilter = null;
+                      }),
+                      icon: const Icon(Icons.clear),
+                      label: const Text('清除筛选'),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppTheme.space4),
+          ],
           if (repository.records.isEmpty)
             const AppEmptyState(
               icon: Icons.history,
               title: '还没有占卜记录',
               subtitle: '完成一次占卜后，结果会自动保存到这里。',
             )
+          else if (records.isEmpty)
+            const AppEmptyState(
+              icon: Icons.search_off,
+              title: '没有匹配的历史记录',
+              subtitle: '可以调整关键词、术式或角色筛选条件。',
+            )
           else
-            ...repository.records.map(
+            ...records.map(
               (record) => Padding(
                 padding: const EdgeInsets.only(bottom: AppTheme.space3),
                 child: _HistoryRecordCard(
                   record: record,
+                  syncState: repository.syncStateFor(record.id),
                   onDelete: () => repository.delete(record.id),
+                  onRetry: () => repository.retrySync(record.id),
                 ),
               ),
             ),
@@ -115,13 +253,34 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
     );
   }
+
+  static List<String> _recordRoleNames(DivinationHistoryRecord record) {
+    final names = <String>[
+      if (record.caseSnapshot != null) record.caseSnapshot!.displayName,
+    ];
+    final secondRaw = record.payload['secondCaseSnapshot'];
+    if (secondRaw is Map) {
+      final name = secondRaw['name'];
+      if (name is String && name.trim().isNotEmpty) {
+        names.add(name.trim());
+      }
+    }
+    return names.toSet().toList(growable: false);
+  }
 }
 
 class _HistoryRecordCard extends StatelessWidget {
   final DivinationHistoryRecord record;
+  final HistorySyncState syncState;
   final VoidCallback onDelete;
+  final VoidCallback onRetry;
 
-  const _HistoryRecordCard({required this.record, required this.onDelete});
+  const _HistoryRecordCard({
+    required this.record,
+    required this.syncState,
+    required this.onDelete,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -201,6 +360,21 @@ class _HistoryRecordCard extends StatelessWidget {
             '${_formatTime(record.createdAt)} · ${record.algorithmLabel}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
+          const SizedBox(height: AppTheme.space2),
+          Row(
+            children: [
+              Icon(_syncIcon(syncState.status), size: 16),
+              const SizedBox(width: AppTheme.space1),
+              Text(
+                _syncLabel(syncState.status),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              if (syncState.status == HistorySyncStatus.failed) ...[
+                const SizedBox(width: AppTheme.space2),
+                TextButton(onPressed: onRetry, child: const Text('重试')),
+              ],
+            ],
+          ),
           if (record.aiInterpretation != null) ...[
             const SizedBox(height: AppTheme.space2),
             Row(
@@ -239,6 +413,24 @@ class _HistoryRecordCard extends StatelessWidget {
       ),
     );
   }
+
+  static String _syncLabel(HistorySyncStatus status) => switch (status) {
+    HistorySyncStatus.localOnly => '仅本地',
+    HistorySyncStatus.pending => '等待同步',
+    HistorySyncStatus.syncing => '正在同步',
+    HistorySyncStatus.synced => '已同步',
+    HistorySyncStatus.failed => '同步失败',
+    HistorySyncStatus.pendingDelete => '等待删除同步',
+  };
+
+  static IconData _syncIcon(HistorySyncStatus status) => switch (status) {
+    HistorySyncStatus.localOnly => Icons.phone_android_outlined,
+    HistorySyncStatus.pending => Icons.schedule_outlined,
+    HistorySyncStatus.syncing => Icons.sync,
+    HistorySyncStatus.synced => Icons.cloud_done_outlined,
+    HistorySyncStatus.failed => Icons.cloud_off_outlined,
+    HistorySyncStatus.pendingDelete => Icons.delete_outline,
+  };
 
   Future<void> _showDailyHexagramDetails(
     BuildContext context,

@@ -16,11 +16,7 @@ void main() {
     methodId: 'xiaoliuren',
     version: 1,
     calculationFacts: [
-      DivinationEvidenceItem(
-        id: 'primary',
-        label: '主证',
-        detail: '时宫大安',
-      ),
+      DivinationEvidenceItem(id: 'primary', label: '主证', detail: '时宫大安'),
     ],
     supportingEvidence: [],
     counterEvidence: [
@@ -31,11 +27,7 @@ void main() {
       ),
     ],
     limitations: [
-      DivinationEvidenceItem(
-        id: 'limit',
-        label: '能力边界',
-        detail: '不能替代现实决策。',
-      ),
+      DivinationEvidenceItem(id: 'limit', label: '能力边界', detail: '不能替代现实决策。'),
     ],
     summary: '以时宫大安为主证。',
   );
@@ -94,10 +86,7 @@ void main() {
       contains('签题'),
     );
     expect(
-      AiInterpretationPromptBuilder.methodInstruction(
-        'daily-hexagram',
-        '每日一卦',
-      ),
+      AiInterpretationPromptBuilder.methodInstruction('daily-hexagram', '每日一卦'),
       contains('当天'),
     );
   });
@@ -144,9 +133,8 @@ void main() {
 
 class _ThrowingService implements AiInterpretationService {
   @override
-  Future<AiInterpretationResponse> interpret(
-    AiInterpretationRequest request,
-  ) => Future.error(StateError('remote unavailable'));
+  Future<AiInterpretationResponse> interpret(AiInterpretationRequest request) =>
+      Future.error(StateError('remote unavailable'));
 }
 
 class _SlowService implements AiInterpretationService {
