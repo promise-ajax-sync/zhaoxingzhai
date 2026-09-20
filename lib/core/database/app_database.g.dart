@@ -1287,18 +1287,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ];
 }
 
-typedef $$LocalCasesTableCreateCompanionBuilder = LocalCasesCompanion Function({
-  required String id,
-  required String profileJson,
-  required DateTime updatedAt,
-  Value<int> rowid,
-});
-typedef $$LocalCasesTableUpdateCompanionBuilder = LocalCasesCompanion Function({
-  Value<String> id,
-  Value<String> profileJson,
-  Value<DateTime> updatedAt,
-  Value<int> rowid,
-});
+typedef $$LocalCasesTableCreateCompanionBuilder =
+    LocalCasesCompanion Function({
+      required String id,
+      required String profileJson,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$LocalCasesTableUpdateCompanionBuilder =
+    LocalCasesCompanion Function({
+      Value<String> id,
+      Value<String> profileJson,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
 
 class $$LocalCasesTableFilterComposer
     extends Composer<_$AppDatabase, $LocalCasesTable> {
@@ -2072,11 +2074,16 @@ class $$LocalAppMetadataTableTableManager
               $$LocalAppMetadataTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$LocalAppMetadataTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> key = const Value.absent(),
-            Value<String> value = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => LocalAppMetadataCompanion(key: key, value: value, rowid: rowid),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalAppMetadataCompanion(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
           createCompanionCallback:
               ({
                 required String key,
