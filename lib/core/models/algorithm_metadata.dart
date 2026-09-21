@@ -61,6 +61,12 @@ abstract final class AlgorithmCatalog {
     ruleset: 'three-coins-six-lines-taking-rules-v1',
   );
 
+  static const liuyao = AlgorithmDescriptor(
+    id: 'liuyao',
+    version: 1,
+    ruleset: 'jingfang-najia-eight-palaces-v1',
+  );
+
   static const meihua = AlgorithmDescriptor(
     id: 'meihua',
     version: 1,

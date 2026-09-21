@@ -27,6 +27,7 @@ import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
 import 'package:zhaoxingzhai/features/fortune/domain/today_fortune.dart';
 import 'package:zhaoxingzhai/features/fortune/presentation/fortune_page.dart';
 import 'package:zhaoxingzhai/features/meihua/presentation/meihua_page.dart';
+import 'package:zhaoxingzhai/features/liuyao/presentation/liuyao_page.dart';
 import 'package:zhaoxingzhai/features/oracle/presentation/oracle_page.dart';
 import 'package:zhaoxingzhai/features/settings/presentation/settings_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
@@ -156,6 +157,22 @@ class _AppShellState extends State<AppShell> {
             caseSnapshot: _caseSelection.currentSnapshot,
           ),
     ),
+    AppView.liuyao: LiuyaoPage(
+      routedDraft: _routedDraft,
+      aiService: _aiServiceBundle.service,
+      answerStyle: () => _preference.id,
+      onResult: (result) => _historyRepository.addLiuyao(
+        result,
+        caseSnapshot: _caseSelection.currentSnapshot,
+      ),
+      onAiResponse: (result, response) async {
+        await _historyRepository.updateAiInterpretation(
+          DivinationHistoryRepository.liuyaoRecordId(result),
+          response,
+          answerStyle: _preference.id,
+        );
+      },
+    ),
     AppView.tarot: TarotPage(
       routedDraft: _routedDraft,
       aiService: _aiServiceBundle.service,
@@ -273,6 +290,7 @@ class _AppShellState extends State<AppShell> {
       DivinationTool.tarot => AppView.tarot,
       DivinationTool.xiaoliuren => AppView.xiaoliuren,
       DivinationTool.ssgw => AppView.oracle,
+      DivinationTool.liuyao => AppView.liuyao,
       DivinationTool.dailyHexagram => AppView.dailyHexagram,
     });
   }

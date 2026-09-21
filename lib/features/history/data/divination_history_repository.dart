@@ -7,6 +7,7 @@ import 'package:zhaoxingzhai/core/database/app_database.dart';
 import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
 import 'package:zhaoxingzhai/core/engine/daily_hexagram/daily_hexagram.dart';
 import 'package:zhaoxingzhai/core/engine/meihua/meihua_divination.dart';
+import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_divination.dart';
 import 'package:zhaoxingzhai/core/interpretation/daily_hexagram_interpretation.dart';
 import 'package:zhaoxingzhai/core/interpretation/meihua_interpretation.dart';
 import 'package:zhaoxingzhai/core/models/meihua_consultation_context.dart';
@@ -66,6 +67,7 @@ class DivinationHistoryRecord {
     'tarot' => '塔罗',
     'ssgw' => '灵签',
     'daily-hexagram' => '每日一卦',
+    'liuyao' => '六爻排盘',
     'meihua' => '梅花易数',
     'today-fortune' => '今日运势',
     'compatibility' => '合盘',
@@ -191,6 +193,8 @@ class DivinationHistoryRepository extends ChangeNotifier {
       result.isManual
       ? 'daily-hexagram:manual:${result.generatedAt.microsecondsSinceEpoch}'
       : 'daily-hexagram:${result.dateKey}:${result.caseKey ?? 'general'}';
+  static String liuyaoRecordId(LiuyaoResult result) =>
+      'liuyao:${result.generatedAt.microsecondsSinceEpoch}';
   static String meihuaRecordId(MeihuaResult result) =>
       'meihua:${result.generatedAt.microsecondsSinceEpoch}:${result.method.name}';
   static String todayFortuneRecordId(TodayFortune result) =>
@@ -549,6 +553,29 @@ class DivinationHistoryRepository extends ChangeNotifier {
             'question': question.toJson(),
           'interpretation': interpretation.toJson(),
         },
+        algorithmId: result.algorithm.id,
+        algorithmVersion: result.algorithm.version,
+        schemaVersion: zhaoxingzhaiSchemaVersion,
+        caseSnapshot: caseSnapshot,
+      ),
+    );
+  }
+
+  Future<void> addLiuyao(
+    LiuyaoResult result, {
+    CaseSnapshot? caseSnapshot,
+  }) async {
+    await add(
+      DivinationHistoryRecord(
+        id: liuyaoRecordId(result),
+        type: 'liuyao',
+        title:
+            '${result.base.original.symbol} ${result.base.original.name} → ${result.base.changed.name}',
+        summary:
+            '${result.calendar.dayGanzhi}日 · ${result.base.original.palace}宫${result.palaceStage} · '
+            '世${result.shiPosition}应${result.yingPosition} · ${result.base.movingLines.length}动爻',
+        createdAt: result.generatedAt,
+        payload: result.toJson(),
         algorithmId: result.algorithm.id,
         algorithmVersion: result.algorithm.version,
         schemaVersion: zhaoxingzhaiSchemaVersion,

@@ -3,6 +3,7 @@ enum DivinationTool {
   tarot('tarot', '西方占卜'),
   xiaoliuren('xiaoliuren', '小六壬'),
   ssgw('ssgw', '灵签'),
+  liuyao('liuyao', '六爻排盘'),
   dailyHexagram('daily-hexagram', '每日一卦');
 
   const DivinationTool(this.id, this.label);
@@ -50,6 +51,9 @@ abstract final class DivinationToolRouter {
 
     if (_containsAny(question, ['梅花易数', '梅花起卦', '梅花'])) {
       return choice(DivinationTool.meihua, '问题明确指定了梅花易数。', 1);
+    }
+    if (_containsAny(question, ['六爻', '纳甲', '世爻', '应爻'])) {
+      return choice(DivinationTool.liuyao, '问题明确指定了六爻或纳甲排盘。', 1);
     }
     if (_containsAny(question, ['塔罗', '牌阵', '抽牌'])) {
       return choice(DivinationTool.tarot, '问题明确提到塔罗、牌阵或抽牌。', 1);

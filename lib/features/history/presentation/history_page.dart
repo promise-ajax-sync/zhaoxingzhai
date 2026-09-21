@@ -286,13 +286,17 @@ class _HistoryRecordCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isTarot = record.type == 'tarot';
     final hasDetails =
-        record.type == 'daily-hexagram' || record.type == 'meihua';
+        record.type == 'daily-hexagram' ||
+        record.type == 'meihua' ||
+        record.type == 'liuyao';
 
     return AppCard(
       onTap: hasDetails
-          ? () => record.type == 'meihua'
-                ? _showMeihuaDetails(context, record)
-                : _showDailyHexagramDetails(context, record)
+          ? () => switch (record.type) {
+              'meihua' => _showMeihuaDetails(context, record),
+              'liuyao' => _showLiuyaoDetails(context, record),
+              _ => _showDailyHexagramDetails(context, record),
+            }
           : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,12 +490,103 @@ class _HistoryRecordCard extends StatelessWidget {
     );
   }
 
+  Future<void> _showLiuyaoDetails(
+    BuildContext context,
+    DivinationHistoryRecord record,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('六爻排盘 · ${record.algorithmLabel}'),
+        content: SizedBox(
+          width: 620,
+          child: SingleChildScrollView(
+            child: _LiuyaoHistoryContent(payload: record.payload),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatTime(DateTime time) {
     return '${time.year}-${time.month.toString().padLeft(2, '0')}-'
         '${time.day.toString().padLeft(2, '0')} '
         '${time.hour.toString().padLeft(2, '0')}:'
         '${time.minute.toString().padLeft(2, '0')}';
   }
+}
+
+class _LiuyaoHistoryContent extends StatelessWidget {
+  const _LiuyaoHistoryContent({required this.payload});
+
+  final Map<String, dynamic> payload;
+
+  @override
+  Widget build(BuildContext context) {
+    final original = _map(payload['original']);
+    final changed = _map(payload['changed']);
+    final inter = _map(payload['inter']);
+    final opposite = _map(payload['opposite']);
+    final reversed = _map(payload['reversed']);
+    final calendar = _map(payload['calendar']);
+    final lines = payload['lines'] is List
+        ? (payload['lines'] as List).whereType<Map>().toList(growable: false)
+        : const <Map>[];
+    if (original == null || changed == null || lines.length != 6) {
+      return const Text('这条历史记录的数据不完整，无法恢复六爻盘。原始摘要仍保留在历史列表中。');
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '${original['symbol'] ?? ''} ${original['name']} → ${changed['name']}',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: AppTheme.space2),
+        Text(
+          '${original['palace']}宫${payload['palaceElement']} · ${payload['palaceStage']} · '
+          '世${payload['shiPosition']}应${payload['yingPosition']}',
+        ),
+        if (payload['focusRelation'] != null)
+          Text('观察重点：${payload['focusRelation']}'),
+        if (calendar != null)
+          Text(
+            '${calendar['solarTermMonthGanzhi']}月 ${calendar['dayGanzhi']}日 '
+            '${calendar['hourGanzhi']}时 · 旬空${(payload['voidBranches'] as List?)?.join('') ?? ''}',
+          ),
+        const Divider(height: AppTheme.space5),
+        for (final raw in lines.reversed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.space2),
+            child: Text(
+              '${raw['spirit']} · ${raw['relation']} · ${raw['stem']}${raw['branch']}${raw['element']} · '
+              '${raw['label']}${raw['isShi'] == true ? ' · 世' : ''}'
+              '${raw['isYing'] == true ? ' · 应' : ''}'
+              '${raw['isVoid'] == true ? ' · 空' : ''}'
+              '${raw['moving'] == true ? ' · 动' : ''}',
+            ),
+          ),
+        const Divider(height: AppTheme.space5),
+        Text(
+          '互卦：${inter?['name'] ?? '未保存'} · 错卦：${opposite?['name'] ?? '未保存'} · '
+          '综卦：${reversed?['name'] ?? '未保存'}',
+        ),
+        if ((payload['question'] as String?)?.trim().isNotEmpty == true) ...[
+          const SizedBox(height: AppTheme.space3),
+          Text('占问：${payload['question']}'),
+        ],
+      ],
+    );
+  }
+
+  static Map<String, dynamic>? _map(Object? raw) =>
+      raw is Map ? Map<String, dynamic>.from(raw) : null;
 }
 
 class _MeihuaHistoryContent extends StatelessWidget {

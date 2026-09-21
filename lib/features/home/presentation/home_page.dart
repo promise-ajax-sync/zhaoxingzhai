@@ -150,6 +150,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     DivinationTool.tarot => AppView.tarot,
     DivinationTool.xiaoliuren => AppView.xiaoliuren,
     DivinationTool.ssgw => AppView.oracle,
+    DivinationTool.liuyao => AppView.liuyao,
     DivinationTool.dailyHexagram => AppView.dailyHexagram,
   };
 }

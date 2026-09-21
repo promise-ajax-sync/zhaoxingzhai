@@ -2,6 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zhaoxingzhai/core/routing/divination_tool_router.dart';
 
 void main() {
+  test('明确提到六爻时进入独立六爻排盘', () {
+    expect(
+      DivinationToolRouter.select('请用六爻纳甲看看工作')?.tool,
+      DivinationTool.liuyao,
+    );
+  });
+
   test('明确指定术式时优先按名称路由', () {
     expect(
       DivinationToolRouter.select('用塔罗看看这段关系')?.tool,
