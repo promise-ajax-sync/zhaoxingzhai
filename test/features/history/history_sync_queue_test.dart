@@ -28,6 +28,7 @@ void main() {
       repository.syncStateFor(record.id).serverRecordId,
       'server-record-1',
     );
+    expect(repository.syncStateFor(record.id).serverVersion, 1);
     expect(cloud.syncedRecords, contains(record.id));
     repository.dispose();
   });
@@ -82,6 +83,7 @@ void main() {
         CloudHistoryRecord(
           serverId: 'server-cloud-record',
           record: cloudRecord,
+          version: 3,
         ),
       ],
     );
@@ -98,6 +100,7 @@ void main() {
       repository.syncStateFor(cloudRecord.id).serverRecordId,
       'server-cloud-record',
     );
+    expect(repository.syncStateFor(cloudRecord.id).serverVersion, 3);
     repository.dispose();
   });
 }
@@ -136,13 +139,19 @@ class _FakeCloudSync implements HistoryCloudSync {
   Future<List<CloudHistoryRecord>> fetchRecords() async => fetchedRecords;
 
   @override
-  Future<String> syncRecord(DivinationHistoryRecord record) async {
+  Future<CloudHistoryWriteResult> syncRecord(
+    DivinationHistoryRecord record, {
+    int? baseVersion,
+  }) async {
     if (failuresRemaining > 0) {
       failuresRemaining--;
       throw StateError('暂时不可用');
     }
     syncedRecords.add(record.id);
-    return 'server-${record.id}';
+    return CloudHistoryWriteResult(
+      serverId: 'server-${record.id}',
+      version: (baseVersion ?? 0) + 1,
+    );
   }
 
   @override
@@ -150,10 +159,11 @@ class _FakeCloudSync implements HistoryCloudSync {
     DivinationHistoryRecord record,
     AiInterpretationResponse response, {
     required String answerStyle,
+    required String serverRecordId,
   }) async {}
 
   @override
-  Future<void> deleteRecord(String serverRecordId) async {
+  Future<void> deleteRecord(String serverRecordId, {int? baseVersion}) async {
     deletedServerIds.add(serverRecordId);
   }
 }

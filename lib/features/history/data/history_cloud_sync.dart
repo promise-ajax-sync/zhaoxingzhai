@@ -5,24 +5,44 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/core/ai/ai_backend_config.dart';
 import 'package:zhaoxingzhai/core/ai/ai_interpretation_models.dart';
 import 'package:zhaoxingzhai/core/auth/auth_session.dart';
+import 'package:zhaoxingzhai/core/sync/sync_version_conflict.dart';
 import 'package:zhaoxingzhai/features/history/data/divination_history_repository.dart';
 
 abstract interface class HistoryCloudSync {
   Future<List<CloudHistoryRecord>> fetchRecords();
-  Future<String> syncRecord(DivinationHistoryRecord record);
+  Future<CloudHistoryWriteResult> syncRecord(
+    DivinationHistoryRecord record, {
+    int? baseVersion,
+  });
   Future<void> syncAiInterpretation(
     DivinationHistoryRecord record,
     AiInterpretationResponse response, {
     required String answerStyle,
+    required String serverRecordId,
   });
-  Future<void> deleteRecord(String serverRecordId);
+  Future<void> deleteRecord(String serverRecordId, {int? baseVersion});
 }
 
 class CloudHistoryRecord {
-  const CloudHistoryRecord({required this.serverId, required this.record});
+  const CloudHistoryRecord({
+    required this.serverId,
+    required this.record,
+    required this.version,
+  });
 
   final String serverId;
   final DivinationHistoryRecord record;
+  final int version;
+}
+
+class CloudHistoryWriteResult {
+  const CloudHistoryWriteResult({
+    required this.serverId,
+    required this.version,
+  });
+
+  final String serverId;
+  final int version;
 }
 
 class BackendHistoryCloudSync implements HistoryCloudSync {
@@ -65,16 +85,23 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
   }
 
   @override
-  Future<String> syncRecord(DivinationHistoryRecord record) async {
-    return _upsertRecord(record);
+  Future<CloudHistoryWriteResult> syncRecord(
+    DivinationHistoryRecord record, {
+    int? baseVersion,
+  }) async {
+    return _upsertRecord(record, baseVersion: baseVersion);
   }
 
   @override
-  Future<void> deleteRecord(String serverRecordId) async {
+  Future<void> deleteRecord(String serverRecordId, {int? baseVersion}) async {
     final uri = _recordsUri.replace(
       path: '${_recordsUri.path}/$serverRecordId',
+      queryParameters: {if (baseVersion != null) 'baseVersion': '$baseVersion'},
     );
     final response = await _client.delete(uri, headers: await _headers());
+    if (response.statusCode == 409) {
+      throw _conflict(response, 'record');
+    }
     if (response.statusCode != 204 && response.statusCode != 404) {
       throw StateError('历史删除同步失败：HTTP ${response.statusCode}');
     }
@@ -85,10 +112,10 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
     DivinationHistoryRecord record,
     AiInterpretationResponse response, {
     required String answerStyle,
+    required String serverRecordId,
   }) async {
-    final serverId = await _upsertRecord(record);
     final aiUri = _recordsUri.replace(
-      path: '${_recordsUri.path}/$serverId/ai-interpretation',
+      path: '${_recordsUri.path}/$serverRecordId/ai-interpretation',
     );
     final payload = <String, dynamic>{
       ...response.toJson(),
@@ -106,7 +133,10 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
     }
   }
 
-  Future<String> _upsertRecord(DivinationHistoryRecord record) async {
+  Future<CloudHistoryWriteResult> _upsertRecord(
+    DivinationHistoryRecord record, {
+    int? baseVersion,
+  }) async {
     final response = await _client.post(
       _recordsUri,
       headers: await _headers(),
@@ -124,8 +154,12 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
         'algorithmVersion': record.algorithmVersion,
         'schemaVersion': record.schemaVersion,
         'occurredAt': record.createdAt.toUtc().toIso8601String(),
+        'baseVersion': ?baseVersion,
       }),
     );
+    if (response.statusCode == 409) {
+      throw _conflict(response, 'record');
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError('历史同步失败：HTTP ${response.statusCode}');
     }
@@ -133,7 +167,10 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
     if (decoded is! Map || decoded['id'] is! String) {
       throw const FormatException('历史同步响应缺少记录 ID');
     }
-    return decoded['id'] as String;
+    return CloudHistoryWriteResult(
+      serverId: decoded['id'] as String,
+      version: (decoded['version'] as num?)?.toInt() ?? (baseVersion ?? 0) + 1,
+    );
   }
 
   Future<Map<String, String>> _headers() async {
@@ -151,6 +188,7 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
     final serverId = map['id'];
     final clientRecordId = map['clientRecordId'];
     final resultPayload = map['resultPayload'];
+    final version = (map['version'] as num?)?.toInt() ?? 1;
     if (serverId is! String ||
         clientRecordId is! String ||
         resultPayload is! Map) {
@@ -167,6 +205,7 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
     try {
       return CloudHistoryRecord(
         serverId: serverId,
+        version: version,
         record: DivinationHistoryRecord.fromJson({
           'id': clientRecordId,
           'type': map['methodType'],
@@ -183,5 +222,22 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
     } catch (_) {
       return null;
     }
+  }
+
+  static SyncVersionConflict _conflict(
+    http.Response response,
+    String fallbackResource,
+  ) {
+    try {
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      final detail = decoded is Map ? decoded['detail'] : null;
+      if (detail is Map) {
+        return SyncVersionConflict(
+          resource: detail['resource'] as String? ?? fallbackResource,
+          currentVersion: (detail['currentVersion'] as num?)?.toInt(),
+        );
+      }
+    } catch (_) {}
+    return SyncVersionConflict(resource: fallbackResource);
   }
 }

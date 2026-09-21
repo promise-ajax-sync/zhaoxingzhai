@@ -12,6 +12,7 @@ class HistorySyncState {
     required this.recordId,
     required this.status,
     this.serverRecordId,
+    this.serverVersion,
     this.retryCount = 0,
     this.nextRetryAt,
     this.lastSyncedAt,
@@ -21,6 +22,7 @@ class HistorySyncState {
   final String recordId;
   final HistorySyncStatus status;
   final String? serverRecordId;
+  final int? serverVersion;
   final int retryCount;
   final DateTime? nextRetryAt;
   final DateTime? lastSyncedAt;
@@ -29,6 +31,7 @@ class HistorySyncState {
   HistorySyncState copyWith({
     HistorySyncStatus? status,
     String? serverRecordId,
+    int? serverVersion,
     int? retryCount,
     DateTime? nextRetryAt,
     DateTime? lastSyncedAt,
@@ -39,6 +42,7 @@ class HistorySyncState {
     recordId: recordId,
     status: status ?? this.status,
     serverRecordId: serverRecordId ?? this.serverRecordId,
+    serverVersion: serverVersion ?? this.serverVersion,
     retryCount: retryCount ?? this.retryCount,
     nextRetryAt: clearNextRetry ? null : nextRetryAt ?? this.nextRetryAt,
     lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
@@ -49,6 +53,7 @@ class HistorySyncState {
     'recordId': recordId,
     'status': status.name,
     if (serverRecordId != null) 'serverRecordId': serverRecordId,
+    if (serverVersion != null) 'serverVersion': serverVersion,
     'retryCount': retryCount,
     if (nextRetryAt != null)
       'nextRetryAt': nextRetryAt!.toUtc().toIso8601String(),
@@ -82,6 +87,7 @@ class HistorySyncState {
       recordId: recordId,
       status: status,
       serverRecordId: raw['serverRecordId'] as String?,
+      serverVersion: (raw['serverVersion'] as num?)?.toInt(),
       retryCount: (raw['retryCount'] as num?)?.toInt() ?? 0,
       nextRetryAt: parseDate(raw['nextRetryAt']),
       lastSyncedAt: parseDate(raw['lastSyncedAt']),

@@ -5,11 +5,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/core/ai/ai_backend_config.dart';
 import 'package:zhaoxingzhai/core/auth/auth_session.dart';
 import 'package:zhaoxingzhai/core/models/case_profile.dart';
+import 'package:zhaoxingzhai/core/sync/sync_version_conflict.dart';
 
 class CloudCase {
-  const CloudCase({required this.serverId, required this.profile});
+  const CloudCase({
+    required this.serverId,
+    required this.profile,
+    required this.version,
+  });
   final String serverId;
   final CaseProfile profile;
+  final int version;
+}
+
+class CloudCaseWriteResult {
+  const CloudCaseWriteResult({required this.serverId, required this.version});
+
+  final String serverId;
+  final int version;
 }
 
 class CaseCloudSync {
@@ -46,7 +59,10 @@ class CaseCloudSync {
     return decoded.map(_parse).whereType<CloudCase>().toList();
   }
 
-  Future<String> upsert(CaseProfile profile) async {
+  Future<CloudCaseWriteResult> upsert(
+    CaseProfile profile, {
+    int? baseVersion,
+  }) async {
     final response = await _client.post(
       _casesUri,
       headers: await _headers(),
@@ -54,8 +70,12 @@ class CaseCloudSync {
         'clientId': profile.id,
         'name': profile.name,
         'profile': profile.toJson(),
+        'baseVersion': ?baseVersion,
       }),
     );
+    if (response.statusCode == 409) {
+      throw _conflict(response, 'case');
+    }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError('角色同步失败：HTTP ${response.statusCode}');
     }
@@ -63,14 +83,25 @@ class CaseCloudSync {
     if (decoded is! Map || decoded['id'] is! String) {
       throw const FormatException('角色同步响应缺少 ID');
     }
-    return decoded['id'] as String;
+    return CloudCaseWriteResult(
+      serverId: decoded['id'] as String,
+      version: (decoded['version'] as num?)?.toInt() ?? (baseVersion ?? 0) + 1,
+    );
   }
 
-  Future<void> delete(String serverId) async {
+  Future<void> delete(String serverId, {int? baseVersion}) async {
     final response = await _client.delete(
-      _casesUri.replace(path: '${_casesUri.path}/$serverId'),
+      _casesUri.replace(
+        path: '${_casesUri.path}/$serverId',
+        queryParameters: {
+          if (baseVersion != null) 'baseVersion': '$baseVersion',
+        },
+      ),
       headers: await _headers(),
     );
+    if (response.statusCode == 409) {
+      throw _conflict(response, 'case');
+    }
     if (response.statusCode != 204 && response.statusCode != 404) {
       throw StateError('角色删除同步失败：HTTP ${response.statusCode}');
     }
@@ -90,11 +121,29 @@ class CaseCloudSync {
     final json = Map<String, dynamic>.from(raw);
     final id = json['id'];
     final profileJson = json['profile'];
+    final version = (json['version'] as num?)?.toInt() ?? 1;
     if (id is! String || profileJson is! Map) return null;
     final profile = CaseProfile.tryFromJson(
       Map<String, dynamic>.from(profileJson),
     );
     if (profile == null) return null;
-    return CloudCase(serverId: id, profile: profile);
+    return CloudCase(serverId: id, profile: profile, version: version);
+  }
+
+  static SyncVersionConflict _conflict(
+    http.Response response,
+    String fallbackResource,
+  ) {
+    try {
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      final detail = decoded is Map ? decoded['detail'] : null;
+      if (detail is Map) {
+        return SyncVersionConflict(
+          resource: detail['resource'] as String? ?? fallbackResource,
+          currentVersion: (detail['currentVersion'] as num?)?.toInt(),
+        );
+      }
+    } catch (_) {}
+    return SyncVersionConflict(resource: fallbackResource);
   }
 }

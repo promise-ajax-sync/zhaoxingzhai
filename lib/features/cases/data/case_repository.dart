@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/core/database/app_database.dart';
 import 'package:zhaoxingzhai/core/models/case_profile.dart';
+import 'package:zhaoxingzhai/core/sync/sync_version_conflict.dart';
 import 'package:zhaoxingzhai/features/cases/data/case_cloud_sync.dart';
 
 class CaseRepository extends ChangeNotifier {
@@ -27,6 +28,9 @@ class CaseRepository extends ChangeNotifier {
   static const String serverIdsKey = 'zhaoxingzhai.case_server_ids.v1';
   static const String pendingDeletesKey =
       'zhaoxingzhai.case_pending_deletes.v1';
+  static const String serverVersionsKey =
+      'zhaoxingzhai.case_server_versions.v1';
+  static const String _databaseVersionsKey = 'sync.case_server_versions.v1';
 
   final Future<SharedPreferences> Function() _preferencesFactory;
   final CaseCloudSync? _cloudSync;
@@ -34,6 +38,7 @@ class CaseRepository extends ChangeNotifier {
   final List<CaseProfile> _cases = [];
   final Map<String, String> _serverIds = {};
   final Map<String, String> _pendingDeletes = {};
+  final Map<String, int> _serverVersions = {};
   Future<void>? _loadFuture;
   bool _isLoaded = false;
   String? _loadError;
@@ -58,9 +63,11 @@ class CaseRepository extends ChangeNotifier {
       final raw = preferences.getString(storageKey);
       final serverIdsRaw = preferences.getString(serverIdsKey);
       final pendingDeletesRaw = preferences.getString(pendingDeletesKey);
+      final serverVersionsRaw = preferences.getString(serverVersionsKey);
       _cases.clear();
       _serverIds.clear();
       _pendingDeletes.clear();
+      _serverVersions.clear();
       if (serverIdsRaw != null && serverIdsRaw.isNotEmpty) {
         final decoded = jsonDecode(serverIdsRaw);
         if (decoded is Map) {
@@ -77,6 +84,7 @@ class CaseRepository extends ChangeNotifier {
           );
         }
       }
+      _restoreVersionMap(serverVersionsRaw);
       if (raw != null && raw.isNotEmpty) {
         final decoded = jsonDecode(raw);
         if (decoded is! List) {
@@ -106,6 +114,7 @@ class CaseRepository extends ChangeNotifier {
     _cases.clear();
     _serverIds.clear();
     _pendingDeletes.clear();
+    _serverVersions.clear();
     for (final row in await database.loadCases()) {
       final decoded = jsonDecode(row.profileJson);
       if (decoded is! Map) continue;
@@ -120,6 +129,7 @@ class CaseRepository extends ChangeNotifier {
         _pendingDeletes[row.localId] = row.pendingDeleteServerId!;
       }
     }
+    _restoreVersionMap(await database.metadataValue(_databaseVersionsKey));
     _sort();
   }
 
@@ -130,6 +140,7 @@ class CaseRepository extends ChangeNotifier {
     final raw = preferences.getString(storageKey);
     final serverIdsRaw = preferences.getString(serverIdsKey);
     final pendingDeletesRaw = preferences.getString(pendingDeletesKey);
+    final serverVersionsRaw = preferences.getString(serverVersionsKey);
     if (_cases.isEmpty && raw != null && raw.isNotEmpty) {
       final decoded = jsonDecode(raw);
       if (decoded is List) {
@@ -152,9 +163,11 @@ class CaseRepository extends ChangeNotifier {
 
     restoreMap(serverIdsRaw, _serverIds);
     restoreMap(pendingDeletesRaw, _pendingDeletes);
+    _restoreVersionMap(serverVersionsRaw);
     _sort();
     await _persist();
     await _persistServerIds();
+    await _persistServerVersions();
     await database.setMetadataValue(migrationKey, 'done');
   }
 
@@ -200,11 +213,15 @@ class CaseRepository extends ChangeNotifier {
       _pendingDeletes[id] = serverId;
       await _persistPendingDeletes();
       try {
-        await _cloudSync.delete(serverId);
+        await _cloudSync.delete(serverId, baseVersion: _serverVersions[id]);
         _serverIds.remove(id);
         _pendingDeletes.remove(id);
+        _serverVersions.remove(id);
         await _persistServerIds();
         await _persistPendingDeletes();
+        await _persistServerVersions();
+      } on SyncVersionConflict {
+        await _acceptRemoteVersion(id);
       } catch (_) {}
     }
   }
@@ -220,15 +237,18 @@ class CaseRepository extends ChangeNotifier {
     _cases.clear();
     _serverIds.clear();
     _pendingDeletes.clear();
+    _serverVersions.clear();
     final localDatabase = database;
     if (localDatabase != null) {
       await localDatabase.replaceCases(const []);
       await localDatabase.replaceCaseSyncStates(const []);
+      await localDatabase.setMetadataValue(_databaseVersionsKey, '{}');
     }
     final preferences = await _preferencesFactory();
     await preferences.remove(storageKey);
     await preferences.remove(serverIdsKey);
     await preferences.remove(pendingDeletesKey);
+    await preferences.remove(serverVersionsKey);
     notifyListeners();
   }
 
@@ -239,16 +259,26 @@ class CaseRepository extends ChangeNotifier {
     if (cloud == null) return;
     try {
       for (final entry in _pendingDeletes.entries.toList()) {
-        await cloud.delete(entry.value);
-        _pendingDeletes.remove(entry.key);
-        _serverIds.remove(entry.key);
+        try {
+          await cloud.delete(
+            entry.value,
+            baseVersion: _serverVersions[entry.key],
+          );
+          _pendingDeletes.remove(entry.key);
+          _serverIds.remove(entry.key);
+          _serverVersions.remove(entry.key);
+        } on SyncVersionConflict {
+          await _acceptRemoteVersion(entry.key);
+        }
       }
       await _persistPendingDeletes();
       await _persistServerIds();
+      await _persistServerVersions();
       final remote = await cloud.fetchCases();
       var changed = false;
       for (final item in remote) {
         _serverIds[item.profile.id] = item.serverId;
+        _serverVersions[item.profile.id] = item.version;
         final index = _cases.indexWhere((local) => local.id == item.profile.id);
         if (index < 0) {
           _cases.add(item.profile);
@@ -259,7 +289,7 @@ class CaseRepository extends ChangeNotifier {
         }
       }
       final remoteIds = remote.map((item) => item.profile.id).toSet();
-      for (final local in _cases) {
+      for (final local in _cases.toList()) {
         if (_pendingDeletes.containsKey(local.id)) continue;
         CloudCase? remoteItem;
         for (final item in remote) {
@@ -271,7 +301,16 @@ class CaseRepository extends ChangeNotifier {
         if (!remoteIds.contains(local.id) ||
             (remoteItem != null &&
                 local.updatedAt.isAfter(remoteItem.profile.updatedAt))) {
-          _serverIds[local.id] = await cloud.upsert(local);
+          try {
+            final result = await cloud.upsert(
+              local,
+              baseVersion: _serverVersions[local.id],
+            );
+            _serverIds[local.id] = result.serverId;
+            _serverVersions[local.id] = result.version;
+          } on SyncVersionConflict {
+            await _acceptRemoteVersion(local.id);
+          }
         }
       }
       if (changed) {
@@ -279,6 +318,7 @@ class CaseRepository extends ChangeNotifier {
         await _persist();
       }
       await _persistServerIds();
+      await _persistServerVersions();
     } catch (_) {
       // 离线时继续使用本地案例。
     }
@@ -288,8 +328,16 @@ class CaseRepository extends ChangeNotifier {
     final cloud = _cloudSync;
     if (cloud == null) return;
     try {
-      _serverIds[profile.id] = await cloud.upsert(profile);
+      final result = await cloud.upsert(
+        profile,
+        baseVersion: _serverVersions[profile.id],
+      );
+      _serverIds[profile.id] = result.serverId;
+      _serverVersions[profile.id] = result.version;
       await _persistServerIds();
+      await _persistServerVersions();
+    } on SyncVersionConflict {
+      await _acceptRemoteVersion(profile.id);
     } catch (_) {
       // 后续刷新或再次编辑时重试，不阻断本地操作。
     }
@@ -313,6 +361,64 @@ class CaseRepository extends ChangeNotifier {
     }
     final preferences = await _preferencesFactory();
     await preferences.setString(pendingDeletesKey, jsonEncode(_pendingDeletes));
+  }
+
+  void _restoreVersionMap(String? encoded) {
+    if (encoded == null || encoded.isEmpty) return;
+    final decoded = jsonDecode(encoded);
+    if (decoded is! Map) return;
+    for (final entry in decoded.entries) {
+      if (entry.value is num) {
+        _serverVersions['${entry.key}'] = (entry.value as num).toInt();
+      }
+    }
+  }
+
+  Future<void> _persistServerVersions() async {
+    final encoded = jsonEncode(_serverVersions);
+    final localDatabase = database;
+    if (localDatabase != null) {
+      await localDatabase.setMetadataValue(_databaseVersionsKey, encoded);
+      return;
+    }
+    final preferences = await _preferencesFactory();
+    await preferences.setString(serverVersionsKey, encoded);
+  }
+
+  Future<void> _acceptRemoteVersion(String localId) async {
+    final cloud = _cloudSync;
+    if (cloud == null) return;
+    List<CloudCase> remote;
+    try {
+      remote = await cloud.fetchCases();
+    } catch (_) {
+      _loadError = '检测到角色版本冲突，等待网络恢复后重新获取云端版本';
+      notifyListeners();
+      return;
+    }
+    CloudCase? match;
+    for (final item in remote) {
+      if (item.profile.id == localId) {
+        match = item;
+        break;
+      }
+    }
+    if (match == null) {
+      _loadError = '检测到角色版本冲突，但云端未返回对应角色';
+      notifyListeners();
+      return;
+    }
+    _pendingDeletes.remove(localId);
+    _serverIds[localId] = match.serverId;
+    _serverVersions[localId] = match.version;
+    _cases.removeWhere((item) => item.id == localId);
+    _cases.add(match.profile);
+    _sort();
+    _loadError = '该角色已在其他设备更新，已保留云端最新版本';
+    await _persist();
+    await _persistPendingDeletes();
+    await _persistServerIds();
+    await _persistServerVersions();
   }
 
   Future<void> _persist() async {

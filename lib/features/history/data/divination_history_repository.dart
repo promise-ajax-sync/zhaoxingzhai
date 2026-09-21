@@ -17,6 +17,7 @@ import 'package:zhaoxingzhai/core/interpretation/xiaoliuren_interpretation.dart'
 import 'package:zhaoxingzhai/core/engine/ssgw/ssgw_divination.dart';
 import 'package:zhaoxingzhai/core/models/case_profile.dart';
 import 'package:zhaoxingzhai/core/shared/result.dart';
+import 'package:zhaoxingzhai/core/sync/sync_version_conflict.dart';
 import 'package:zhaoxingzhai/core/engine/tarot/tarot_divination.dart';
 import 'package:zhaoxingzhai/core/ai/ai_interpretation_models.dart';
 import 'package:zhaoxingzhai/features/history/data/ai_interpretation_snapshot.dart';
@@ -341,21 +342,29 @@ class DivinationHistoryRepository extends ChangeNotifier {
     for (final cloudRecord in cloudRecords) {
       final record = cloudRecord.record;
       final index = _records.indexWhere((item) => item.id == record.id);
+      final state = _syncStates[record.id];
       if (index < 0) {
         _records.add(record);
         changed = true;
+      } else if (state != null &&
+          state.status == HistorySyncStatus.synced &&
+          (state.serverVersion == null ||
+              cloudRecord.version > state.serverVersion!)) {
+        _records[index] = record;
+        changed = true;
       }
-      final state = _syncStates[record.id];
       if (state == null) {
         _syncStates[record.id] = HistorySyncState(
           recordId: record.id,
           status: HistorySyncStatus.synced,
           serverRecordId: cloudRecord.serverId,
+          serverVersion: cloudRecord.version,
           lastSyncedAt: now,
         );
       } else {
         _syncStates[record.id] = state.copyWith(
           serverRecordId: cloudRecord.serverId,
+          serverVersion: cloudRecord.version,
           status: state.status == HistorySyncStatus.localOnly
               ? HistorySyncStatus.pending
               : state.status,
@@ -652,6 +661,7 @@ class DivinationHistoryRepository extends ChangeNotifier {
         recordId: record.id,
         status: HistorySyncStatus.pending,
         serverRecordId: _syncStates[record.id]?.serverRecordId,
+        serverVersion: _syncStates[record.id]?.serverVersion,
       );
       await _persistSyncStates();
     }
@@ -700,6 +710,7 @@ class DivinationHistoryRepository extends ChangeNotifier {
         recordId: recordId,
         status: HistorySyncStatus.pending,
         serverRecordId: previous?.serverRecordId,
+        serverVersion: previous?.serverVersion,
       );
       await _persistSyncStates();
     }
@@ -820,12 +831,21 @@ class DivinationHistoryRepository extends ChangeNotifier {
       try {
         if (state.serverRecordId != null) {
           await _cloudSync!
-              .deleteRecord(state.serverRecordId!)
+              .deleteRecord(
+                state.serverRecordId!,
+                baseVersion: state.serverVersion,
+              )
               .timeout(const Duration(seconds: 15));
         }
         _syncStates.remove(state.recordId);
         await _persistSyncStates();
         notifyListeners();
+      } on SyncVersionConflict {
+        try {
+          await _acceptRemoteRecord(state.recordId);
+        } catch (error) {
+          await _markSyncFailure(state, error, deleting: true);
+        }
       } catch (error) {
         await _markSyncFailure(state, error, deleting: true);
       }
@@ -852,8 +872,8 @@ class DivinationHistoryRepository extends ChangeNotifier {
     await _persistSyncStates();
     notifyListeners();
     try {
-      final serverId = await _cloudSync!
-          .syncRecord(record)
+      final writeResult = await _cloudSync!
+          .syncRecord(record, baseVersion: activeState.serverVersion)
           .timeout(const Duration(seconds: 15));
       final ai = record.aiInterpretation;
       if (ai != null) {
@@ -872,28 +892,73 @@ class DivinationHistoryRepository extends ChangeNotifier {
                 reading: ai.reading,
               ),
               answerStyle: ai.answerStyle,
+              serverRecordId: writeResult.serverId,
             )
             .timeout(const Duration(seconds: 15));
       }
       state = _syncStates[activeState.recordId];
       if (state?.status == HistorySyncStatus.pendingDelete) {
         await _cloudSync
-            .deleteRecord(serverId)
+            .deleteRecord(
+              writeResult.serverId,
+              baseVersion: writeResult.version,
+            )
             .timeout(const Duration(seconds: 15));
         _syncStates.remove(record.id);
       } else {
         _syncStates[record.id] = HistorySyncState(
           recordId: record.id,
           status: HistorySyncStatus.synced,
-          serverRecordId: serverId,
+          serverRecordId: writeResult.serverId,
+          serverVersion: writeResult.version,
           lastSyncedAt: DateTime.now(),
         );
       }
       await _persistSyncStates();
       notifyListeners();
+    } on SyncVersionConflict {
+      try {
+        await _acceptRemoteRecord(record.id);
+      } catch (error) {
+        await _markSyncFailure(_syncStates[record.id] ?? initialState, error);
+      }
     } catch (error) {
       await _markSyncFailure(_syncStates[record.id] ?? initialState, error);
     }
+  }
+
+  Future<void> _acceptRemoteRecord(String recordId) async {
+    final cloudSync = _cloudSync;
+    if (cloudSync == null) return;
+    final remoteRecords = await cloudSync.fetchRecords();
+    CloudHistoryRecord? match;
+    for (final item in remoteRecords) {
+      if (item.record.id == recordId) {
+        match = item;
+        break;
+      }
+    }
+    if (match == null) {
+      throw StateError('检测到历史版本冲突，但云端未返回对应记录');
+    }
+    final index = _records.indexWhere((item) => item.id == recordId);
+    if (index < 0) {
+      _records.add(match.record);
+    } else {
+      _records[index] = match.record;
+    }
+    _records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    _syncStates[recordId] = HistorySyncState(
+      recordId: recordId,
+      status: HistorySyncStatus.synced,
+      serverRecordId: match.serverId,
+      serverVersion: match.version,
+      lastSyncedAt: DateTime.now(),
+      lastError: '该记录已在其他设备更新，已保留云端最新版本',
+    );
+    await _persist();
+    await _persistSyncStates();
+    notifyListeners();
   }
 
   Future<void> _markSyncFailure(
