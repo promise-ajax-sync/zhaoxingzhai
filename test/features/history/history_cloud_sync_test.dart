@@ -159,6 +159,39 @@ void main() {
     expect(records.single.record.id, 'tarot:cloud-record');
     expect(records.single.record.aiInterpretation?.reading?.headline, '云端结论');
   });
+
+  test('历史增量同步可以解析跨设备删除墓碑', () async {
+    SharedPreferences.setMockInitialValues({});
+    final client = MockClient(
+      (_) async => http.Response(
+        jsonEncode({
+          'items': [
+            {
+              'id': 'server-record-deleted',
+              'clientRecordId': 'tarot:deleted',
+              'version': 8,
+              'deleted': true,
+              'updatedAt': '2026-09-21T08:00:00Z',
+              'record': null,
+            },
+          ],
+          'nextCursor': 'history-cursor-final',
+          'hasMore': false,
+        }),
+        200,
+      ),
+    );
+    final sync = BackendHistoryCloudSync(
+      client: client,
+      config: const AiBackendConfig(baseUrl: 'http://127.0.0.1:8000'),
+    );
+
+    final batch = await sync.fetchChanges(null);
+
+    expect(batch.cursor, 'history-cursor-final');
+    expect(batch.items.single.deleted, isTrue);
+    expect(batch.items.single.clientRecordId, 'tarot:deleted');
+  });
 }
 
 DivinationHistoryRecord _testRecord() => DivinationHistoryRecord(

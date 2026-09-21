@@ -1,10 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zhaoxingzhai/core/ai/ai_backend_config.dart';
 import 'package:zhaoxingzhai/core/models/case_profile.dart';
 import 'package:zhaoxingzhai/features/cases/case_selection.dart';
 import 'package:zhaoxingzhai/features/cases/data/case_repository.dart';
+import 'package:zhaoxingzhai/features/cases/data/case_cloud_sync.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -170,6 +174,55 @@ void main() {
     expect(preferences.containsKey(CaseRepository.storageKey), isFalse);
     expect(preferences.containsKey(CaseRepository.serverIdsKey), isFalse);
     expect(preferences.containsKey(CaseRepository.pendingDeletesKey), isFalse);
+    repository.dispose();
+  });
+
+  test('增量同步墓碑会删除另一设备已经删除的角色并保存游标', () async {
+    final profile = CaseProfile.create(
+      name: '待跨设备删除',
+      birthDateTime: DateTime(1990, 1, 1),
+      now: DateTime(2026, 9, 21),
+    );
+    SharedPreferences.setMockInitialValues({
+      CaseRepository.storageKey: jsonEncode([profile.toJson()]),
+      CaseRepository.serverIdsKey: jsonEncode({profile.id: 'server-case'}),
+      CaseRepository.serverVersionsKey: jsonEncode({profile.id: 2}),
+    });
+    final client = MockClient((request) async {
+      expect(request.url.path, '/api/v1/sync/cases');
+      return http.Response(
+        jsonEncode({
+          'items': [
+            {
+              'id': 'server-case',
+              'clientId': profile.id,
+              'version': 3,
+              'deleted': true,
+              'updatedAt': '2026-09-21T08:00:00Z',
+            },
+          ],
+          'nextCursor': 'case-cursor-3',
+          'hasMore': false,
+        }),
+        200,
+      );
+    });
+    final repository = CaseRepository(
+      cloudSync: CaseCloudSync(
+        client: client,
+        accessToken: () async => 'token',
+        config: const AiBackendConfig(baseUrl: 'http://127.0.0.1:8000'),
+      ),
+    );
+
+    await repository.ensureLoaded();
+
+    expect(repository.cases, isEmpty);
+    final preferences = await SharedPreferences.getInstance();
+    expect(
+      preferences.getString(CaseRepository.syncCursorKey),
+      'case-cursor-3',
+    );
     repository.dispose();
   });
 }

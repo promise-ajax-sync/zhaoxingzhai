@@ -10,6 +10,7 @@ import 'package:zhaoxingzhai/features/history/data/divination_history_repository
 
 abstract interface class HistoryCloudSync {
   Future<List<CloudHistoryRecord>> fetchRecords();
+  Future<CloudHistoryChangeBatch> fetchChanges(String? cursor);
   Future<CloudHistoryWriteResult> syncRecord(
     DivinationHistoryRecord record, {
     int? baseVersion,
@@ -45,6 +46,29 @@ class CloudHistoryWriteResult {
   final int version;
 }
 
+class CloudHistoryChange {
+  const CloudHistoryChange({
+    required this.serverId,
+    required this.clientRecordId,
+    required this.version,
+    required this.deleted,
+    this.record,
+  });
+
+  final String serverId;
+  final String clientRecordId;
+  final int version;
+  final bool deleted;
+  final DivinationHistoryRecord? record;
+}
+
+class CloudHistoryChangeBatch {
+  const CloudHistoryChangeBatch({required this.items, required this.cursor});
+
+  final List<CloudHistoryChange> items;
+  final String? cursor;
+}
+
 class BackendHistoryCloudSync implements HistoryCloudSync {
   BackendHistoryCloudSync({
     required http.Client client,
@@ -67,6 +91,43 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
   final Future<String?> Function() _accessToken;
 
   Uri get _recordsUri => _config.interpretUri.replace(path: '/api/v1/records');
+  Uri get _recordSyncUri =>
+      _config.interpretUri.replace(path: '/api/v1/sync/records');
+
+  @override
+  Future<CloudHistoryChangeBatch> fetchChanges(String? cursor) async {
+    final items = <CloudHistoryChange>[];
+    var requestCursor = cursor;
+    while (true) {
+      final uri = _recordSyncUri.replace(
+        queryParameters: {
+          'cursor': ?requestCursor,
+          'limit': '200',
+        },
+      );
+      final response = await _client.get(uri, headers: await _headers());
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw StateError('历史增量同步失败：HTTP ${response.statusCode}');
+      }
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      if (decoded is! Map || decoded['items'] is! List) {
+        throw const FormatException('历史增量同步响应格式无效');
+      }
+      for (final raw in decoded['items'] as List) {
+        final item = _parseChange(raw);
+        if (item != null) items.add(item);
+      }
+      final next = decoded['nextCursor'];
+      final hasMore = decoded['hasMore'] == true;
+      if (next is String && next.isNotEmpty) requestCursor = next;
+      if (!hasMore) {
+        return CloudHistoryChangeBatch(items: items, cursor: requestCursor);
+      }
+      if (next is! String || next.isEmpty) {
+        throw const FormatException('历史增量同步缺少下一页游标');
+      }
+    }
+  }
 
   @override
   Future<List<CloudHistoryRecord>> fetchRecords() async {
@@ -222,6 +283,35 @@ class BackendHistoryCloudSync implements HistoryCloudSync {
     } catch (_) {
       return null;
     }
+  }
+
+  static CloudHistoryChange? _parseChange(Object? raw) {
+    if (raw is! Map) return null;
+    final map = Map<String, dynamic>.from(raw);
+    final serverId = map['id'];
+    final clientRecordId = map['clientRecordId'];
+    final version = map['version'];
+    final deleted = map['deleted'];
+    if (serverId is! String ||
+        clientRecordId is! String ||
+        version is! num ||
+        deleted is! bool) {
+      return null;
+    }
+    DivinationHistoryRecord? record;
+    if (!deleted) {
+      final recordRaw = map['record'];
+      final parsed = _parseCloudRecord(recordRaw);
+      if (parsed == null) return null;
+      record = parsed.record;
+    }
+    return CloudHistoryChange(
+      serverId: serverId,
+      clientRecordId: clientRecordId,
+      version: version.toInt(),
+      deleted: deleted,
+      record: record,
+    );
   }
 
   static SyncVersionConflict _conflict(

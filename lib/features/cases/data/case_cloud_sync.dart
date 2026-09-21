@@ -25,6 +25,29 @@ class CloudCaseWriteResult {
   final int version;
 }
 
+class CloudCaseChange {
+  const CloudCaseChange({
+    required this.serverId,
+    required this.clientId,
+    required this.version,
+    required this.deleted,
+    this.profile,
+  });
+
+  final String serverId;
+  final String clientId;
+  final int version;
+  final bool deleted;
+  final CaseProfile? profile;
+}
+
+class CloudCaseChangeBatch {
+  const CloudCaseChangeBatch({required this.items, required this.cursor});
+
+  final List<CloudCaseChange> items;
+  final String? cursor;
+}
+
 class CaseCloudSync {
   CaseCloudSync({
     required http.Client client,
@@ -48,6 +71,44 @@ class CaseCloudSync {
   final Future<SharedPreferences> Function() _preferencesFactory;
 
   Uri get _casesUri => _config.interpretUri.replace(path: '/api/v1/cases');
+  Uri get _caseSyncUri =>
+      _config.interpretUri.replace(path: '/api/v1/sync/cases');
+
+  Future<CloudCaseChangeBatch> fetchChanges(String? cursor) async {
+    final items = <CloudCaseChange>[];
+    var requestCursor = cursor;
+    while (true) {
+      final uri = _caseSyncUri.replace(
+        queryParameters: {
+          'cursor': ?requestCursor,
+          'limit': '200',
+        },
+      );
+      final response = await _client.get(uri, headers: await _headers());
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw StateError('角色增量同步失败：HTTP ${response.statusCode}');
+      }
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      if (decoded is! Map || decoded['items'] is! List) {
+        throw const FormatException('角色增量同步响应格式无效');
+      }
+      for (final raw in decoded['items'] as List) {
+        final item = _parseChange(raw);
+        if (item != null) items.add(item);
+      }
+      final next = decoded['nextCursor'];
+      final hasMore = decoded['hasMore'] == true;
+      if (next is String && next.isNotEmpty) {
+        requestCursor = next;
+      }
+      if (!hasMore) {
+        return CloudCaseChangeBatch(items: items, cursor: requestCursor);
+      }
+      if (next is! String || next.isEmpty) {
+        throw const FormatException('角色增量同步缺少下一页游标');
+      }
+    }
+  }
 
   Future<List<CloudCase>> fetchCases() async {
     final response = await _client.get(_casesUri, headers: await _headers());
@@ -128,6 +189,35 @@ class CaseCloudSync {
     );
     if (profile == null) return null;
     return CloudCase(serverId: id, profile: profile, version: version);
+  }
+
+  static CloudCaseChange? _parseChange(Object? raw) {
+    if (raw is! Map) return null;
+    final json = Map<String, dynamic>.from(raw);
+    final serverId = json['id'];
+    final clientId = json['clientId'];
+    final version = json['version'];
+    final deleted = json['deleted'];
+    if (serverId is! String ||
+        clientId is! String ||
+        version is! num ||
+        deleted is! bool) {
+      return null;
+    }
+    CaseProfile? profile;
+    if (!deleted && json['profile'] is Map) {
+      profile = CaseProfile.tryFromJson(
+        Map<String, dynamic>.from(json['profile'] as Map),
+      );
+      if (profile == null) return null;
+    }
+    return CloudCaseChange(
+      serverId: serverId,
+      clientId: clientId,
+      version: version.toInt(),
+      deleted: deleted,
+      profile: profile,
+    );
   }
 
   static SyncVersionConflict _conflict(

@@ -94,4 +94,37 @@ void main() {
       ),
     );
   });
+
+  test('角色增量同步会返回墓碑并保存最终游标', () async {
+    final client = MockClient(
+      (_) async => http.Response(
+        jsonEncode({
+          'items': [
+            {
+              'id': 'server-deleted',
+              'clientId': 'case:deleted',
+              'version': 6,
+              'deleted': true,
+              'updatedAt': '2026-09-21T08:00:00Z',
+            },
+          ],
+          'nextCursor': 'cursor-final',
+          'hasMore': false,
+        }),
+        200,
+      ),
+    );
+    final sync = CaseCloudSync(
+      client: client,
+      accessToken: () async => 'token',
+      config: const AiBackendConfig(baseUrl: 'http://127.0.0.1:8000'),
+    );
+
+    final batch = await sync.fetchChanges('cursor-old');
+
+    expect(batch.cursor, 'cursor-final');
+    expect(batch.items.single.deleted, isTrue);
+    expect(batch.items.single.clientId, 'case:deleted');
+    expect(batch.items.single.version, 6);
+  });
 }

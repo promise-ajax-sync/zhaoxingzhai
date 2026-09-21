@@ -31,6 +31,12 @@ class CaseRepository extends ChangeNotifier {
   static const String serverVersionsKey =
       'zhaoxingzhai.case_server_versions.v1';
   static const String _databaseVersionsKey = 'sync.case_server_versions.v1';
+  static const String _databaseCursorKey = 'sync.case_cursor.v1';
+  static const String _databasePendingUpsertsKey =
+      'sync.case_pending_upserts.v1';
+  static const String syncCursorKey = 'zhaoxingzhai.case_sync_cursor.v1';
+  static const String pendingUpsertsKey =
+      'zhaoxingzhai.case_pending_upserts.v1';
 
   final Future<SharedPreferences> Function() _preferencesFactory;
   final CaseCloudSync? _cloudSync;
@@ -39,6 +45,8 @@ class CaseRepository extends ChangeNotifier {
   final Map<String, String> _serverIds = {};
   final Map<String, String> _pendingDeletes = {};
   final Map<String, int> _serverVersions = {};
+  final Set<String> _pendingUpserts = {};
+  String? _syncCursor;
   Future<void>? _loadFuture;
   bool _isLoaded = false;
   String? _loadError;
@@ -64,6 +72,9 @@ class CaseRepository extends ChangeNotifier {
       final serverIdsRaw = preferences.getString(serverIdsKey);
       final pendingDeletesRaw = preferences.getString(pendingDeletesKey);
       final serverVersionsRaw = preferences.getString(serverVersionsKey);
+      _pendingUpserts.clear();
+      _syncCursor = preferences.getString(syncCursorKey);
+      _restorePendingUpserts(preferences.getString(pendingUpsertsKey));
       _cases.clear();
       _serverIds.clear();
       _pendingDeletes.clear();
@@ -100,6 +111,11 @@ class CaseRepository extends ChangeNotifier {
         }
         _sort();
       }
+      for (final profile in _cases) {
+        if (!_serverIds.containsKey(profile.id)) {
+          _pendingUpserts.add(profile.id);
+        }
+      }
       await refreshFromCloud();
       _loadError = null;
     } catch (error) {
@@ -115,6 +131,7 @@ class CaseRepository extends ChangeNotifier {
     _serverIds.clear();
     _pendingDeletes.clear();
     _serverVersions.clear();
+    _pendingUpserts.clear();
     for (final row in await database.loadCases()) {
       final decoded = jsonDecode(row.profileJson);
       if (decoded is! Map) continue;
@@ -130,6 +147,13 @@ class CaseRepository extends ChangeNotifier {
       }
     }
     _restoreVersionMap(await database.metadataValue(_databaseVersionsKey));
+    final storedCursor = await database.metadataValue(_databaseCursorKey);
+    _syncCursor = storedCursor == null || storedCursor.isEmpty
+        ? null
+        : storedCursor;
+    _restorePendingUpserts(
+      await database.metadataValue(_databasePendingUpsertsKey),
+    );
     _sort();
   }
 
@@ -164,10 +188,19 @@ class CaseRepository extends ChangeNotifier {
     restoreMap(serverIdsRaw, _serverIds);
     restoreMap(pendingDeletesRaw, _pendingDeletes);
     _restoreVersionMap(serverVersionsRaw);
+    _syncCursor ??= preferences.getString(syncCursorKey);
+    _restorePendingUpserts(preferences.getString(pendingUpsertsKey));
+    for (final profile in _cases) {
+      if (!_serverIds.containsKey(profile.id)) {
+        _pendingUpserts.add(profile.id);
+      }
+    }
     _sort();
     await _persist();
     await _persistServerIds();
     await _persistServerVersions();
+    await _persistSyncCursor();
+    await _persistPendingUpserts();
     await database.setMetadataValue(migrationKey, 'done');
   }
 
@@ -183,8 +216,10 @@ class CaseRepository extends ChangeNotifier {
     await ensureLoaded();
     _cases.removeWhere((item) => item.id == profile.id);
     _cases.add(profile);
+    _pendingUpserts.add(profile.id);
     _sort();
     await _persist();
+    await _persistPendingUpserts();
     await _sync(profile);
     return profile;
   }
@@ -195,8 +230,10 @@ class CaseRepository extends ChangeNotifier {
     final index = _cases.indexWhere((item) => item.id == profile.id);
     if (index < 0) return profile;
     _cases[index] = profile;
+    _pendingUpserts.add(profile.id);
     _sort();
     await _persist();
+    await _persistPendingUpserts();
     await _sync(profile);
     return profile;
   }
@@ -207,7 +244,9 @@ class CaseRepository extends ChangeNotifier {
   Future<void> delete(String id) async {
     await ensureLoaded();
     _cases.removeWhere((item) => item.id == id);
+    _pendingUpserts.remove(id);
     await _persist();
+    await _persistPendingUpserts();
     final serverId = _serverIds[id];
     if (serverId != null && _cloudSync != null) {
       _pendingDeletes[id] = serverId;
@@ -238,17 +277,23 @@ class CaseRepository extends ChangeNotifier {
     _serverIds.clear();
     _pendingDeletes.clear();
     _serverVersions.clear();
+    _pendingUpserts.clear();
+    _syncCursor = null;
     final localDatabase = database;
     if (localDatabase != null) {
       await localDatabase.replaceCases(const []);
       await localDatabase.replaceCaseSyncStates(const []);
       await localDatabase.setMetadataValue(_databaseVersionsKey, '{}');
+      await localDatabase.setMetadataValue(_databaseCursorKey, '');
+      await localDatabase.setMetadataValue(_databasePendingUpsertsKey, '[]');
     }
     final preferences = await _preferencesFactory();
     await preferences.remove(storageKey);
     await preferences.remove(serverIdsKey);
     await preferences.remove(pendingDeletesKey);
     await preferences.remove(serverVersionsKey);
+    await preferences.remove(syncCursorKey);
+    await preferences.remove(pendingUpsertsKey);
     notifyListeners();
   }
 
@@ -274,43 +319,58 @@ class CaseRepository extends ChangeNotifier {
       await _persistPendingDeletes();
       await _persistServerIds();
       await _persistServerVersions();
-      final remote = await cloud.fetchCases();
+      final batch = await cloud.fetchChanges(_syncCursor);
       var changed = false;
-      for (final item in remote) {
-        _serverIds[item.profile.id] = item.serverId;
-        _serverVersions[item.profile.id] = item.version;
-        final index = _cases.indexWhere((local) => local.id == item.profile.id);
+      for (final item in batch.items) {
+        final localId = item.clientId;
+        final previousVersion = _serverVersions[localId];
+        _serverIds[localId] = item.serverId;
+        if (item.deleted) {
+          _serverVersions[localId] = item.version;
+          _pendingDeletes.remove(localId);
+          _pendingUpserts.remove(localId);
+          final before = _cases.length;
+          _cases.removeWhere((local) => local.id == localId);
+          changed = changed || before != _cases.length;
+          continue;
+        }
+        final remoteProfile = item.profile;
+        if (remoteProfile == null) continue;
+        if (_pendingUpserts.contains(localId) &&
+            previousVersion != null &&
+            item.version > previousVersion) {
+          // 保留旧基础版本，让随后的上传触发 409，再统一采用云端版本。
+          continue;
+        }
+        _serverVersions[localId] = item.version;
+        final index = _cases.indexWhere((local) => local.id == localId);
         if (index < 0) {
-          _cases.add(item.profile);
+          _cases.add(remoteProfile);
           changed = true;
-        } else if (item.profile.updatedAt.isAfter(_cases[index].updatedAt)) {
-          _cases[index] = item.profile;
+        } else if (!_pendingUpserts.contains(localId) &&
+            remoteProfile.updatedAt.isAfter(_cases[index].updatedAt)) {
+          _cases[index] = remoteProfile;
           changed = true;
         }
       }
-      final remoteIds = remote.map((item) => item.profile.id).toSet();
-      for (final local in _cases.toList()) {
-        if (_pendingDeletes.containsKey(local.id)) continue;
-        CloudCase? remoteItem;
-        for (final item in remote) {
-          if (item.profile.id == local.id) {
-            remoteItem = item;
-            break;
-          }
+      _syncCursor = batch.cursor;
+      for (final localId in _pendingUpserts.toList()) {
+        if (_pendingDeletes.containsKey(localId)) continue;
+        final local = findById(localId);
+        if (local == null) {
+          _pendingUpserts.remove(localId);
+          continue;
         }
-        if (!remoteIds.contains(local.id) ||
-            (remoteItem != null &&
-                local.updatedAt.isAfter(remoteItem.profile.updatedAt))) {
-          try {
-            final result = await cloud.upsert(
-              local,
-              baseVersion: _serverVersions[local.id],
-            );
-            _serverIds[local.id] = result.serverId;
-            _serverVersions[local.id] = result.version;
-          } on SyncVersionConflict {
-            await _acceptRemoteVersion(local.id);
-          }
+        try {
+          final result = await cloud.upsert(
+            local,
+            baseVersion: _serverVersions[local.id],
+          );
+          _serverIds[local.id] = result.serverId;
+          _serverVersions[local.id] = result.version;
+          _pendingUpserts.remove(local.id);
+        } on SyncVersionConflict {
+          await _acceptRemoteVersion(local.id);
         }
       }
       if (changed) {
@@ -319,6 +379,8 @@ class CaseRepository extends ChangeNotifier {
       }
       await _persistServerIds();
       await _persistServerVersions();
+      await _persistPendingUpserts();
+      await _persistSyncCursor();
     } catch (_) {
       // 离线时继续使用本地案例。
     }
@@ -334,8 +396,10 @@ class CaseRepository extends ChangeNotifier {
       );
       _serverIds[profile.id] = result.serverId;
       _serverVersions[profile.id] = result.version;
+      _pendingUpserts.remove(profile.id);
       await _persistServerIds();
       await _persistServerVersions();
+      await _persistPendingUpserts();
     } on SyncVersionConflict {
       await _acceptRemoteVersion(profile.id);
     } catch (_) {
@@ -385,6 +449,42 @@ class CaseRepository extends ChangeNotifier {
     await preferences.setString(serverVersionsKey, encoded);
   }
 
+  void _restorePendingUpserts(String? encoded) {
+    if (encoded == null || encoded.isEmpty) return;
+    final decoded = jsonDecode(encoded);
+    if (decoded is List) {
+      _pendingUpserts.addAll(decoded.map((item) => '$item'));
+    }
+  }
+
+  Future<void> _persistPendingUpserts() async {
+    final encoded = jsonEncode(_pendingUpserts.toList());
+    final localDatabase = database;
+    if (localDatabase != null) {
+      await localDatabase.setMetadataValue(_databasePendingUpsertsKey, encoded);
+      return;
+    }
+    final preferences = await _preferencesFactory();
+    await preferences.setString(pendingUpsertsKey, encoded);
+  }
+
+  Future<void> _persistSyncCursor() async {
+    final localDatabase = database;
+    if (localDatabase != null) {
+      await localDatabase.setMetadataValue(
+        _databaseCursorKey,
+        _syncCursor ?? '',
+      );
+      return;
+    }
+    final preferences = await _preferencesFactory();
+    if (_syncCursor == null) {
+      await preferences.remove(syncCursorKey);
+    } else {
+      await preferences.setString(syncCursorKey, _syncCursor!);
+    }
+  }
+
   Future<void> _acceptRemoteVersion(String localId) async {
     final cloud = _cloudSync;
     if (cloud == null) return;
@@ -409,6 +509,7 @@ class CaseRepository extends ChangeNotifier {
       return;
     }
     _pendingDeletes.remove(localId);
+    _pendingUpserts.remove(localId);
     _serverIds[localId] = match.serverId;
     _serverVersions[localId] = match.version;
     _cases.removeWhere((item) => item.id == localId);

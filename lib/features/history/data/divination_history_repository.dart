@@ -141,6 +141,9 @@ class DivinationHistoryRepository extends ChangeNotifier {
   static const String storageKey = 'zhaoxingzhai.divination_history.v1';
   static const String syncStorageKey =
       'zhaoxingzhai.divination_history_sync.v1';
+  static const String syncCursorKey =
+      'zhaoxingzhai.divination_history_cursor.v1';
+  static const String _databaseCursorKey = 'sync.history_cursor.v1';
   static const _maxRecords = 100;
 
   final Future<SharedPreferences> Function() _preferencesFactory;
@@ -154,6 +157,7 @@ class DivinationHistoryRepository extends ChangeNotifier {
   bool _isDisposed = false;
   Timer? _retryTimer;
   String? _loadError;
+  String? _syncCursor;
 
   DivinationHistoryRepository({
     Future<SharedPreferences> Function()? preferencesFactory,
@@ -199,13 +203,16 @@ class DivinationHistoryRepository extends ChangeNotifier {
     if (cloudSync == null || _isDisposed) return;
     await ensureLoaded();
     try {
-      final cloudRecords = await cloudSync.fetchRecords().timeout(
-        const Duration(seconds: 15),
-      );
-      if (_mergeCloudRecords(cloudRecords)) {
+      final batch = await cloudSync
+          .fetchChanges(_syncCursor)
+          .timeout(const Duration(seconds: 15));
+      final changed = _applyCloudChanges(batch);
+      if (changed) {
         await _persist();
         if (!_isDisposed) notifyListeners();
       }
+      await _persistSyncStates();
+      await _persistSyncCursor();
       await processPendingSync();
     } catch (_) {
       // 登录后的即时刷新失败时保留本地历史，后续同步队列仍可重试。
@@ -222,16 +229,19 @@ class DivinationHistoryRepository extends ChangeNotifier {
         final preferences = await _preferencesFactory();
         _restoreRecords(preferences.getString(storageKey));
         _restoreSyncStates(preferences.getString(syncStorageKey));
+        _syncCursor = preferences.getString(syncCursorKey);
       }
       if (_cloudSync != null) {
         try {
-          final cloudRecords = await _cloudSync.fetchRecords().timeout(
-            const Duration(seconds: 15),
-          );
-          final changed = _mergeCloudRecords(cloudRecords);
+          final batch = await _cloudSync
+              .fetchChanges(_syncCursor)
+              .timeout(const Duration(seconds: 15));
+          final changed = _applyCloudChanges(batch);
           if (changed) {
             await _persist();
           }
+          await _persistSyncStates();
+          await _persistSyncCursor();
         } catch (_) {
           // 云端暂时不可用时仍优先展示本地历史，后续由同步队列重试。
         }
@@ -261,6 +271,7 @@ class DivinationHistoryRepository extends ChangeNotifier {
   Future<void> _loadFromDatabase(AppDatabase database) async {
     _records.clear();
     _syncStates.clear();
+    _syncCursor = null;
     for (final row in await database.loadHistoryRecords()) {
       try {
         final decoded = jsonDecode(row.recordJson);
@@ -284,6 +295,10 @@ class DivinationHistoryRepository extends ChangeNotifier {
             : state;
       }
     }
+    final storedCursor = await database.metadataValue(_databaseCursorKey);
+    _syncCursor = storedCursor == null || storedCursor.isEmpty
+        ? null
+        : storedCursor;
     _records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
@@ -297,8 +312,10 @@ class DivinationHistoryRepository extends ChangeNotifier {
     if (_syncStates.isEmpty) {
       _restoreSyncStates(preferences.getString(syncStorageKey));
     }
+    _syncCursor ??= preferences.getString(syncCursorKey);
     await _persist();
     await _persistSyncStates();
+    await _persistSyncCursor();
     await database.setMetadataValue(migrationKey, 'done');
   }
 
@@ -336,41 +353,49 @@ class DivinationHistoryRepository extends ChangeNotifier {
     }
   }
 
-  bool _mergeCloudRecords(List<CloudHistoryRecord> cloudRecords) {
+  bool _applyCloudChanges(CloudHistoryChangeBatch batch) {
     var changed = false;
     final now = DateTime.now();
-    for (final cloudRecord in cloudRecords) {
-      final record = cloudRecord.record;
-      final index = _records.indexWhere((item) => item.id == record.id);
-      final state = _syncStates[record.id];
+    for (final item in batch.items) {
+      final state = _syncStates[item.clientRecordId];
+      if (item.deleted) {
+        final before = _records.length;
+        _records.removeWhere((record) => record.id == item.clientRecordId);
+        _syncStates.remove(item.clientRecordId);
+        changed = changed || before != _records.length;
+        continue;
+      }
+      final remoteRecord = item.record;
+      if (remoteRecord == null) continue;
+      final hasPendingLocalChange =
+          state != null &&
+          (state.status == HistorySyncStatus.pending ||
+              state.status == HistorySyncStatus.syncing ||
+              state.status == HistorySyncStatus.failed);
+      if (hasPendingLocalChange &&
+          state.serverVersion != null &&
+          item.version > state.serverVersion!) {
+        // 保留旧基础版本，上传时触发 409，再采用服务器最新内容。
+        continue;
+      }
+      final index = _records.indexWhere(
+        (record) => record.id == item.clientRecordId,
+      );
       if (index < 0) {
-        _records.add(record);
-        changed = true;
-      } else if (state != null &&
-          state.status == HistorySyncStatus.synced &&
-          (state.serverVersion == null ||
-              cloudRecord.version > state.serverVersion!)) {
-        _records[index] = record;
-        changed = true;
-      }
-      if (state == null) {
-        _syncStates[record.id] = HistorySyncState(
-          recordId: record.id,
-          status: HistorySyncStatus.synced,
-          serverRecordId: cloudRecord.serverId,
-          serverVersion: cloudRecord.version,
-          lastSyncedAt: now,
-        );
+        _records.add(remoteRecord);
       } else {
-        _syncStates[record.id] = state.copyWith(
-          serverRecordId: cloudRecord.serverId,
-          serverVersion: cloudRecord.version,
-          status: state.status == HistorySyncStatus.localOnly
-              ? HistorySyncStatus.pending
-              : state.status,
-        );
+        _records[index] = remoteRecord;
       }
+      _syncStates[item.clientRecordId] = HistorySyncState(
+        recordId: item.clientRecordId,
+        status: HistorySyncStatus.synced,
+        serverRecordId: item.serverId,
+        serverVersion: item.version,
+        lastSyncedAt: now,
+      );
+      changed = true;
     }
+    _syncCursor = batch.cursor;
     if (changed) {
       _records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       if (_records.length > _maxRecords) {
@@ -770,10 +795,12 @@ class DivinationHistoryRepository extends ChangeNotifier {
     if (localDatabase != null) {
       await localDatabase.replaceHistoryRecords(const []);
       await localDatabase.replaceHistorySyncStates(const []);
+      await localDatabase.setMetadataValue(_databaseCursorKey, '');
     }
     final preferences = await _preferencesFactory();
     await preferences.remove(storageKey);
     await preferences.remove(syncStorageKey);
+    await preferences.remove(syncCursorKey);
     notifyListeners();
   }
 
@@ -1055,6 +1082,23 @@ class DivinationHistoryRepository extends ChangeNotifier {
       syncStorageKey,
       jsonEncode(_syncStates.values.map((state) => state.toJson()).toList()),
     );
+  }
+
+  Future<void> _persistSyncCursor() async {
+    final localDatabase = database;
+    if (localDatabase != null) {
+      await localDatabase.setMetadataValue(
+        _databaseCursorKey,
+        _syncCursor ?? '',
+      );
+      return;
+    }
+    final preferences = await _preferencesFactory();
+    if (_syncCursor == null) {
+      await preferences.remove(syncCursorKey);
+    } else {
+      await preferences.setString(syncCursorKey, _syncCursor!);
+    }
   }
 
   @override

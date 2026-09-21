@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zhaoxingzhai/core/ai/ai_interpretation_models.dart';
@@ -103,6 +105,46 @@ void main() {
     expect(repository.syncStateFor(cloudRecord.id).serverVersion, 3);
     repository.dispose();
   });
+
+  test('增量同步墓碑会移除另一设备已经删除的历史', () async {
+    final record = _record('remote-deleted');
+    SharedPreferences.setMockInitialValues({
+      DivinationHistoryRepository.storageKey: jsonEncode([record.toJson()]),
+      DivinationHistoryRepository.syncStorageKey: jsonEncode([
+        HistorySyncState(
+          recordId: record.id,
+          status: HistorySyncStatus.synced,
+          serverRecordId: 'server-remote-deleted',
+          serverVersion: 2,
+        ).toJson(),
+      ]),
+    });
+    final cloud = _FakeCloudSync(
+      fetchedChanges: [
+        CloudHistoryChange(
+          serverId: 'server-remote-deleted',
+          clientRecordId: record.id,
+          version: 3,
+          deleted: true,
+        ),
+      ],
+    );
+    final repository = DivinationHistoryRepository(cloudSync: cloud);
+
+    await repository.ensureLoaded();
+
+    expect(repository.records, isEmpty);
+    final preferences = await SharedPreferences.getInstance();
+    expect(
+      preferences.getString(DivinationHistoryRepository.syncCursorKey),
+      'cursor-1',
+    );
+    expect(
+      repository.syncStateFor(record.id).status,
+      HistorySyncStatus.pending,
+    );
+    repository.dispose();
+  });
 }
 
 Future<void> _waitFor(bool Function() condition) async {
@@ -128,15 +170,39 @@ DivinationHistoryRecord _record(String id) => DivinationHistoryRecord(
 );
 
 class _FakeCloudSync implements HistoryCloudSync {
-  _FakeCloudSync({this.failuresRemaining = 0, this.fetchedRecords = const []});
+  _FakeCloudSync({
+    this.failuresRemaining = 0,
+    this.fetchedRecords = const [],
+    this.fetchedChanges = const [],
+  });
 
   int failuresRemaining;
   final List<CloudHistoryRecord> fetchedRecords;
+  final List<CloudHistoryChange> fetchedChanges;
   final List<String> syncedRecords = [];
   final List<String> deletedServerIds = [];
 
   @override
   Future<List<CloudHistoryRecord>> fetchRecords() async => fetchedRecords;
+
+  @override
+  Future<CloudHistoryChangeBatch> fetchChanges(String? cursor) async =>
+      CloudHistoryChangeBatch(
+        cursor: 'cursor-1',
+        items: fetchedChanges.isNotEmpty
+            ? fetchedChanges
+            : fetchedRecords
+                  .map(
+                    (item) => CloudHistoryChange(
+                      serverId: item.serverId,
+                      clientRecordId: item.record.id,
+                      version: item.version,
+                      deleted: false,
+                      record: item.record,
+                    ),
+                  )
+                  .toList(),
+      );
 
   @override
   Future<CloudHistoryWriteResult> syncRecord(
