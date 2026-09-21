@@ -8,6 +8,7 @@ import 'package:zhaoxingzhai/core/engine/xiaoliuren/algorithm.dart';
 import 'package:zhaoxingzhai/core/engine/daily_hexagram/daily_hexagram.dart';
 import 'package:zhaoxingzhai/core/engine/meihua/meihua_divination.dart';
 import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_divination.dart';
+import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_analysis.dart';
 import 'package:zhaoxingzhai/core/interpretation/daily_hexagram_interpretation.dart';
 import 'package:zhaoxingzhai/core/interpretation/meihua_interpretation.dart';
 import 'package:zhaoxingzhai/core/models/meihua_consultation_context.dart';
@@ -575,7 +576,10 @@ class DivinationHistoryRepository extends ChangeNotifier {
             '${result.calendar.dayGanzhi}日 · ${result.base.original.palace}宫${result.palaceStage} · '
             '世${result.shiPosition}应${result.yingPosition} · ${result.base.movingLines.length}动爻',
         createdAt: result.generatedAt,
-        payload: result.toJson(),
+        payload: {
+          ...result.toJson(),
+          'advanced': LiuyaoAdvancedAnalyzer.build(result).toJson(),
+        },
         algorithmId: result.algorithm.id,
         algorithmVersion: result.algorithm.version,
         schemaVersion: zhaoxingzhaiSchemaVersion,

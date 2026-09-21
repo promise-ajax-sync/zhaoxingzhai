@@ -63,8 +63,8 @@ abstract final class AlgorithmCatalog {
 
   static const liuyao = AlgorithmDescriptor(
     id: 'liuyao',
-    version: 1,
-    ruleset: 'jingfang-najia-eight-palaces-v1',
+    version: 2,
+    ruleset: 'jingfang-najia-strength-relations-v2',
   );
 
   static const meihua = AlgorithmDescriptor(

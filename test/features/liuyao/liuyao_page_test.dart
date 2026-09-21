@@ -31,6 +31,7 @@ void main() {
     expect(find.textContaining('乾为天'), findsWidgets);
     expect(find.textContaining('世'), findsWidgets);
     expect(find.text('互卦：乾为天 · 错卦：坤为地 · 综卦：乾为天'), findsOneWidget);
+    expect(find.text('旺衰与动变'), findsOneWidget);
     expect(find.byKey(const ValueKey('liuyao-ai-reading')), findsOneWidget);
   });
 }

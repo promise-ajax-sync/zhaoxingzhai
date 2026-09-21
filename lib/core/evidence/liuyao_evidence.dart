@@ -1,4 +1,5 @@
 import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_divination.dart';
+import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_analysis.dart';
 import 'package:zhaoxingzhai/core/models/divination_evidence.dart';
 import 'package:zhaoxingzhai/core/models/divination_question.dart';
 
@@ -8,6 +9,7 @@ abstract final class LiuyaoEvidenceBuilder {
     DivinationQuestion question,
   ) {
     final moving = result.lines.where((line) => line.yao.isMoving).toList();
+    final advanced = LiuyaoAdvancedAnalyzer.build(result);
     return DivinationEvidence(
       methodId: 'liuyao',
       version: 1,
@@ -18,6 +20,16 @@ abstract final class LiuyaoEvidenceBuilder {
           detail:
               '本卦${result.base.original.name}，变卦${result.base.changed.name}，'
               '互卦${result.base.inter.name}，错卦${result.opposite.name}，综卦${result.reversed.name}。',
+        ),
+        DivinationEvidenceItem(
+          id: 'advanced-relations',
+          label: '旺衰冲合',
+          detail: [
+            ...advanced.lineAnalyses.map(
+              (item) => '${item.position}爻${item.tags.join('、')}',
+            ),
+            ...advanced.threeHarmony,
+          ].join('；'),
         ),
         DivinationEvidenceItem(
           id: 'palace',

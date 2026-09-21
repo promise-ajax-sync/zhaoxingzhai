@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:zhaoxingzhai/core/ai/ai_interpretation_models.dart';
 import 'package:zhaoxingzhai/core/ai/ai_interpretation_service.dart';
 import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_divination.dart';
+import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_analysis.dart';
 import 'package:zhaoxingzhai/core/evidence/liuyao_evidence.dart';
 import 'package:zhaoxingzhai/core/models/divination_question.dart';
 import 'package:zhaoxingzhai/core/routing/divination_tool_router.dart';
@@ -275,63 +276,90 @@ class _ResultView extends StatelessWidget {
   final LiuyaoResult result;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(AppTheme.space4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            '${result.base.original.symbol} ${result.base.original.name} → ${result.base.changed.name}',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: AppTheme.space2),
-          Text(
-            '${result.base.original.palace}宫${result.palaceElement} · ${result.palaceStage} · '
-            '${result.calendar.solarTermMonthGanzhi}月 ${result.calendar.dayGanzhi}日 '
-            '${result.calendar.hourGanzhi}时 · 旬空${result.voidBranches.join('')}',
-          ),
-          if (result.focusRelation != null)
-            Text('本次观察重点：${result.focusRelation!.label}'),
-          const Divider(height: AppTheme.space5),
-          for (final line in result.lines.reversed)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
-              child: Row(
-                children: [
-                  SizedBox(width: 42, child: Text(line.spirit)),
-                  SizedBox(width: 44, child: Text(line.relation.label)),
-                  SizedBox(
-                    width: 62,
-                    child: Text('${line.ganZhi}${line.element}'),
-                  ),
-                  Expanded(child: _YaoBar(line: line)),
-                  SizedBox(
-                    width: 92,
-                    child: Text(
-                      [
-                        if (line.isShi) '世',
-                        if (line.isYing) '应',
-                        if (line.isVoid) '空',
-                        if (line.yao.isMoving) '动',
-                      ].join(' · '),
-                    ),
-                  ),
-                ],
-              ),
+  Widget build(BuildContext context) {
+    final advanced = LiuyaoAdvancedAnalyzer.build(result);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '${result.base.original.symbol} ${result.base.original.name} → ${result.base.changed.name}',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-          const Divider(height: AppTheme.space5),
-          Text(
-            '互卦：${result.base.inter.name} · 错卦：${result.opposite.name} · 综卦：${result.reversed.name}',
-          ),
-          const SizedBox(height: AppTheme.space2),
-          Text(result.base.takingRule.summary),
-          const SizedBox(height: AppTheme.space3),
-          const Text('说明：排盘结果用于传统文化研究与个人反思，不替代医疗、法律、投资等专业意见。'),
-        ],
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              '${result.base.original.palace}宫${result.palaceElement} · ${result.palaceStage} · '
+              '${result.calendar.solarTermMonthGanzhi}月 ${result.calendar.dayGanzhi}日 '
+              '${result.calendar.hourGanzhi}时 · 旬空${result.voidBranches.join('')}',
+            ),
+            if (result.focusRelation != null)
+              Text('本次观察重点：${result.focusRelation!.label}'),
+            const Divider(height: AppTheme.space5),
+            for (final line in result.lines.reversed)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
+                child: Row(
+                  children: [
+                    SizedBox(width: 42, child: Text(line.spirit)),
+                    SizedBox(width: 44, child: Text(line.relation.label)),
+                    SizedBox(
+                      width: 62,
+                      child: Text('${line.ganZhi}${line.element}'),
+                    ),
+                    Expanded(child: _YaoBar(line: line)),
+                    SizedBox(
+                      width: 92,
+                      child: Text(
+                        [
+                          if (line.isShi) '世',
+                          if (line.isYing) '应',
+                          if (line.isVoid) '空',
+                          if (line.yao.isMoving) '动',
+                        ].join(' · '),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const Divider(height: AppTheme.space5),
+            Text(
+              '互卦：${result.base.inter.name} · 错卦：${result.opposite.name} · 综卦：${result.reversed.name}',
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(result.base.takingRule.summary),
+            const Divider(height: AppTheme.space5),
+            Text('旺衰与动变', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppTheme.space2),
+            for (final item in advanced.lineAnalyses.reversed)
+              Text('${item.position}爻：${item.tags.join(' · ')}'),
+            if (advanced.combinations.isNotEmpty)
+              Text('六合：${advanced.combinations.join('；')}'),
+            if (advanced.clashes.isNotEmpty)
+              Text('六冲：${advanced.clashes.join('；')}'),
+            if (advanced.threeHarmony.isNotEmpty)
+              Text('三合：${advanced.threeHarmony.join('；')}'),
+            if (advanced.hiddenSpirits.isNotEmpty) ...[
+              const SizedBox(height: AppTheme.space2),
+              Text(
+                '伏神与飞神：${advanced.hiddenSpirits.map((item) => '${item.position}爻伏${item.relation.label}${item.stem}${item.branch}${item.element}，飞${item.flyingRelation.label}${item.flyingBranch}').join('；')}',
+              ),
+            ],
+            if (advanced.focusSummary != null) ...[
+              const SizedBox(height: AppTheme.space2),
+              Text(advanced.focusSummary!),
+            ],
+            const SizedBox(height: AppTheme.space3),
+            for (final caution in advanced.cautions)
+              Text('• $caution', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: AppTheme.space3),
+            const Text('说明：排盘结果用于传统文化研究与个人反思，不替代医疗、法律、投资等专业意见。'),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _YaoBar extends StatelessWidget {

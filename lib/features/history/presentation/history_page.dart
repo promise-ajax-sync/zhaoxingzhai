@@ -535,6 +535,7 @@ class _LiuyaoHistoryContent extends StatelessWidget {
     final opposite = _map(payload['opposite']);
     final reversed = _map(payload['reversed']);
     final calendar = _map(payload['calendar']);
+    final advanced = _map(payload['advanced']);
     final lines = payload['lines'] is List
         ? (payload['lines'] as List).whereType<Map>().toList(growable: false)
         : const <Map>[];
@@ -577,6 +578,28 @@ class _LiuyaoHistoryContent extends StatelessWidget {
           '互卦：${inter?['name'] ?? '未保存'} · 错卦：${opposite?['name'] ?? '未保存'} · '
           '综卦：${reversed?['name'] ?? '未保存'}',
         ),
+        const Divider(height: AppTheme.space5),
+        if (advanced == null)
+          const Text('这是六爻 v1 历史：保留基础纳甲、六亲、六神与世应，不使用 v2 高级规则重新计算。')
+        else ...[
+          Text('旺衰与冲合', style: Theme.of(context).textTheme.titleMedium),
+          for (final item in _maps(advanced['lineAnalyses']))
+            Text(
+              '${item['position']}爻：${(item['tags'] as List?)?.join(' · ') ?? ''}',
+            ),
+          if (_strings(advanced['combinations']).isNotEmpty)
+            Text('六合：${_strings(advanced['combinations']).join('；')}'),
+          if (_strings(advanced['clashes']).isNotEmpty)
+            Text('六冲：${_strings(advanced['clashes']).join('；')}'),
+          if (_strings(advanced['threeHarmony']).isNotEmpty)
+            Text('三合：${_strings(advanced['threeHarmony']).join('；')}'),
+          if (_maps(advanced['hiddenSpirits']).isNotEmpty)
+            Text(
+              '伏神与飞神：${_maps(advanced['hiddenSpirits']).map((item) => '${item['position']}爻伏${item['relation']}${item['stem']}${item['branch']}${item['element']}，飞${item['flyingRelation']}${item['flyingBranch']}').join('；')}',
+            ),
+          if (advanced['focusSummary'] is String)
+            Text(advanced['focusSummary'] as String),
+        ],
         if ((payload['question'] as String?)?.trim().isNotEmpty == true) ...[
           const SizedBox(height: AppTheme.space3),
           Text('占问：${payload['question']}'),
@@ -587,6 +610,16 @@ class _LiuyaoHistoryContent extends StatelessWidget {
 
   static Map<String, dynamic>? _map(Object? raw) =>
       raw is Map ? Map<String, dynamic>.from(raw) : null;
+
+  static List<Map<String, dynamic>> _maps(Object? raw) => raw is List
+      ? raw
+            .whereType<Map>()
+            .map(Map<String, dynamic>.from)
+            .toList(growable: false)
+      : const [];
+
+  static List<String> _strings(Object? raw) =>
+      raw is List ? raw.whereType<String>().toList(growable: false) : const [];
 }
 
 class _MeihuaHistoryContent extends StatelessWidget {

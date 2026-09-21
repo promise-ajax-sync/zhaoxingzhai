@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zhaoxingzhai/core/data/hexagram_data.dart';
 import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_divination.dart';
+import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_analysis.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -75,8 +76,53 @@ void main() {
       expect(result.reversed, isNotNull);
       expect(result.voidBranches, hasLength(2));
       expect(result.algorithm.id, 'liuyao');
-      expect(result.algorithm.version, 1);
+      expect(result.algorithm.version, 2);
       expect(result.toJson()['lines'], hasLength(6));
+    });
+
+    test('高级分析生成旺衰、冲合、伏神与用神关系', () {
+      final result = LiuyaoEngine.fromYaoValues(
+        List.filled(6, 7),
+        dateTime: DateTime(2026, 9, 21, 12),
+        focusRelation: LiuyaoRelation.descendants,
+      );
+      final analysis = LiuyaoAdvancedAnalyzer.build(result);
+
+      expect(analysis.lineAnalyses, hasLength(6));
+      expect(
+        analysis.lineAnalyses.where((item) => item.focusRole == '用神'),
+        isNotEmpty,
+      );
+      expect(
+        analysis.lineAnalyses.where((item) => item.focusRole == '原神'),
+        isNotEmpty,
+      );
+      expect(analysis.focusSummary, contains('子孙'));
+      expect(analysis.cautions, isNotEmpty);
+      expect(analysis.toJson()['version'], 1);
+    });
+
+    test('六十四卦高级分析均可生成且缺失六亲能落入伏神飞神', () {
+      var sawHiddenSpirit = false;
+      for (final hexagram in HexagramData.hexagrams) {
+        final values =
+            '${hexagram.binary.substring(3)}${hexagram.binary.substring(0, 3)}'
+                .split('')
+                .map((bit) => bit == '1' ? 7 : 8)
+                .toList(growable: false);
+        final result = LiuyaoEngine.fromYaoValues(
+          values,
+          dateTime: DateTime(2026, 9, 21, 12),
+        );
+        final analysis = LiuyaoAdvancedAnalyzer.build(result);
+        expect(analysis.lineAnalyses, hasLength(6));
+        for (final hidden in analysis.hiddenSpirits) {
+          sawHiddenSpirit = true;
+          expect(hidden.position, inInclusiveRange(1, 6));
+          expect(hidden.flyingBranch, isNotEmpty);
+        }
+      }
+      expect(sawHiddenSpirit, isTrue);
     });
   });
 }
