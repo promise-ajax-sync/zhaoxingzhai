@@ -177,6 +177,15 @@ class _AppShellState extends State<AppShell> {
     AppView.bazi: BaziPage(
       currentCase: () => _caseSelection.currentSnapshot,
       onResult: (result) => _historyRepository.addBazi(result),
+      aiService: _aiServiceBundle.service,
+      answerStyle: () => _preference.id,
+      onAiResponse: (result, response) async {
+        await _historyRepository.updateAiInterpretation(
+          DivinationHistoryRepository.baziRecordId(result),
+          response,
+          answerStyle: _preference.id,
+        );
+      },
     ),
     AppView.tarot: TarotPage(
       routedDraft: _routedDraft,
