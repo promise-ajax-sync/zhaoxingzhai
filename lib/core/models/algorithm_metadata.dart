@@ -67,6 +67,12 @@ abstract final class AlgorithmCatalog {
     ruleset: 'jingfang-najia-strength-relations-v2',
   );
 
+  static const bazi = AlgorithmDescriptor(
+    id: 'bazi',
+    version: 2,
+    ruleset: 'lunar-true-solar-hidden-stems-yun-v2',
+  );
+
   static const meihua = AlgorithmDescriptor(
     id: 'meihua',
     version: 1,

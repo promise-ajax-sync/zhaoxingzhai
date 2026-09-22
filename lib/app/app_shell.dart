@@ -28,6 +28,7 @@ import 'package:zhaoxingzhai/features/fortune/domain/today_fortune.dart';
 import 'package:zhaoxingzhai/features/fortune/presentation/fortune_page.dart';
 import 'package:zhaoxingzhai/features/meihua/presentation/meihua_page.dart';
 import 'package:zhaoxingzhai/features/liuyao/presentation/liuyao_page.dart';
+import 'package:zhaoxingzhai/features/bazi/presentation/bazi_page.dart';
 import 'package:zhaoxingzhai/features/oracle/presentation/oracle_page.dart';
 import 'package:zhaoxingzhai/features/settings/presentation/settings_page.dart';
 import 'package:zhaoxingzhai/features/tarot/presentation/tarot_page.dart';
@@ -172,6 +173,10 @@ class _AppShellState extends State<AppShell> {
           answerStyle: _preference.id,
         );
       },
+    ),
+    AppView.bazi: BaziPage(
+      currentCase: () => _caseSelection.currentSnapshot,
+      onResult: (result) => _historyRepository.addBazi(result),
     ),
     AppView.tarot: TarotPage(
       routedDraft: _routedDraft,

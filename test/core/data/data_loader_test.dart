@@ -151,7 +151,19 @@ void main() {
   test('三山国王灵签数据应包含完整 92 签', () async {
     await SsgwData.load();
     expect(SsgwData.signs, hasLength(92));
+    expect(
+      SsgwData.signs.map((sign) => sign.number),
+      orderedEquals(List<int>.generate(92, (index) => index + 1)),
+    );
     expect(SsgwData.getByNumber(1)?.title, contains('第一签'));
     expect(SsgwData.getByNumber(92)?.title, contains('第九十二签'));
+    for (final sign in SsgwData.signs) {
+      expect(sign.title, isNotEmpty);
+      expect(sign.poem, isNotEmpty);
+      expect(sign.story, isNotEmpty);
+      for (final key in const ['吉凶', '解签总论', '核心寓意', '行动建议', '风险提醒']) {
+        expect(sign.details[key], isNotEmpty, reason: '第${sign.number}签缺少$key');
+      }
+    }
   });
 }

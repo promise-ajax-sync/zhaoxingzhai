@@ -288,13 +288,15 @@ class _HistoryRecordCard extends StatelessWidget {
     final hasDetails =
         record.type == 'daily-hexagram' ||
         record.type == 'meihua' ||
-        record.type == 'liuyao';
+        record.type == 'liuyao' ||
+        record.type == 'bazi';
 
     return AppCard(
       onTap: hasDetails
           ? () => switch (record.type) {
               'meihua' => _showMeihuaDetails(context, record),
               'liuyao' => _showLiuyaoDetails(context, record),
+              'bazi' => _showBaziDetails(context, record),
               _ => _showDailyHexagramDetails(context, record),
             }
           : null,
@@ -514,11 +516,84 @@ class _HistoryRecordCard extends StatelessWidget {
     );
   }
 
+  Future<void> _showBaziDetails(
+    BuildContext context,
+    DivinationHistoryRecord record,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('四柱八字 · ${record.algorithmLabel}'),
+        content: SizedBox(
+          width: 620,
+          child: SingleChildScrollView(
+            child: _BaziHistoryContent(payload: record.payload),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatTime(DateTime time) {
     return '${time.year}-${time.month.toString().padLeft(2, '0')}-'
         '${time.day.toString().padLeft(2, '0')} '
         '${time.hour.toString().padLeft(2, '0')}:'
         '${time.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _BaziHistoryContent extends StatelessWidget {
+  const _BaziHistoryContent({required this.payload});
+
+  final Map<String, dynamic> payload;
+
+  @override
+  Widget build(BuildContext context) {
+    final pillars = payload['pillars'] is List
+        ? (payload['pillars'] as List).whereType<Map>().toList()
+        : const <Map>[];
+    final cycles = payload['luckCycles'] is List
+        ? (payload['luckCycles'] as List).whereType<Map>().toList()
+        : const <Map>[];
+    if (pillars.isEmpty) return const Text('这条八字历史记录的数据不完整。');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '四柱：${pillars.map((p) => p['ganzhi'] ?? '${p['gan'] ?? ''}${p['zhi'] ?? ''}').join('  ')}',
+        ),
+        const SizedBox(height: AppTheme.space2),
+        Text('日主：${payload['dayMaster'] ?? '未记录'}'),
+        if (payload['usedLunarConversion'] == true) ...[
+          const Text('出生历法：农历已转换为公历'),
+        ],
+        if (payload['usedTrueSolarTime'] == true) ...[
+          Text('真太阳时已修正：${payload['trueSolarCorrectionMinutes'] ?? 0} 分钟'),
+        ],
+        if (payload['taiYuan'] != null ||
+            payload['mingGong'] != null ||
+            payload['shenGong'] != null)
+          Text(
+            '胎元：${payload['taiYuan'] ?? '未记录'} · '
+            '命宫：${payload['mingGong'] ?? '未记录'} · '
+            '身宫：${payload['shenGong'] ?? '未记录'}',
+          ),
+        if (cycles.isNotEmpty) ...[
+          const SizedBox(height: AppTheme.space2),
+          const Text('大运：'),
+          for (final cycle in cycles)
+            Text(
+              '${cycle['startAge'] ?? ''}—${cycle['endAge'] ?? ''}岁：${cycle['ganzhi'] ?? ''}',
+            ),
+        ],
+      ],
+    );
   }
 }
 

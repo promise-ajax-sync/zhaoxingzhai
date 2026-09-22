@@ -12,6 +12,7 @@ enum AppView {
   xiaoliuren('小六壬', Icons.nightlight_outlined, Icons.nightlight),
   dailyHexagram('每日一卦', Icons.monetization_on_outlined, Icons.monetization_on),
   liuyao('六爻排盘', Icons.view_agenda_outlined, Icons.view_agenda),
+  bazi('四柱八字', Icons.account_tree_outlined, Icons.account_tree),
   fortune('今日运势', Icons.wb_sunny_outlined, Icons.wb_sunny),
   almanac('传统黄历', Icons.calendar_month_outlined, Icons.calendar_month),
   fengshui('居家风水', Icons.home_outlined, Icons.home),
