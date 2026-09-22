@@ -1,0 +1,53 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:zhaoxingzhai/core/engine/ziwei/ziwei_chart.dart';
+import 'package:zhaoxingzhai/core/models/case_profile.dart';
+import 'package:zhaoxingzhai/features/ziwei/presentation/ziwei_page.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('未选择角色时提示先选择角色', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ZiweiPage(currentCase: () => null)),
+      ),
+    );
+    expect(find.textContaining('请先在角色页面选择'), findsOneWidget);
+  });
+
+  testWidgets('紫微页面展示十二宫、四化与大限并可保存', (tester) async {
+    ZiweiChartResult? saved;
+    final subject = CaseSnapshot(
+      caseId: 'ziwei-page',
+      name: '页面角色',
+      gender: CaseGender.male,
+      calendarType: CaseCalendarType.lunar,
+      birthDateTime: DateTime(2024, 1, 1),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ZiweiPage(
+            currentCase: () => subject,
+            onResult: (result) async => saved = result,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('紫微斗数'), findsOneWidget);
+    expect(find.textContaining('命宫 ·'), findsWidgets);
+    expect(find.textContaining('火六局'), findsOneWidget);
+    expect(find.textContaining('化禄'), findsWidgets);
+    expect(find.textContaining('三方'), findsWidgets);
+    expect(find.textContaining('对宫'), findsWidgets);
+    expect(find.textContaining('化禄入'), findsWidgets);
+    expect(find.text('大限'), findsOneWidget);
+    await tester.ensureVisible(find.text('保存紫微记录'));
+    await tester.tap(find.text('保存紫微记录'));
+    await tester.pump();
+    expect(saved, isNotNull);
+    expect(saved!.palaces, hasLength(12));
+  });
+}

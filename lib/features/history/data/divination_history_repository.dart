@@ -10,6 +10,8 @@ import 'package:zhaoxingzhai/core/engine/meihua/meihua_divination.dart';
 import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_divination.dart';
 import 'package:zhaoxingzhai/core/engine/liuyao/liuyao_analysis.dart';
 import 'package:zhaoxingzhai/core/engine/bazi/bazi_divination.dart';
+import 'package:zhaoxingzhai/core/engine/ziwei/ziwei_chart.dart';
+import 'package:zhaoxingzhai/core/models/algorithm_metadata.dart';
 import 'package:zhaoxingzhai/core/interpretation/daily_hexagram_interpretation.dart';
 import 'package:zhaoxingzhai/core/interpretation/meihua_interpretation.dart';
 import 'package:zhaoxingzhai/core/models/meihua_consultation_context.dart';
@@ -71,6 +73,7 @@ class DivinationHistoryRecord {
     'daily-hexagram' => '每日一卦',
     'liuyao' => '六爻排盘',
     'bazi' => '四柱八字',
+    'ziwei' => '紫微斗数',
     'meihua' => '梅花易数',
     'today-fortune' => '今日运势',
     'compatibility' => '合盘',
@@ -200,6 +203,9 @@ class DivinationHistoryRepository extends ChangeNotifier {
       'liuyao:${result.generatedAt.microsecondsSinceEpoch}';
   static String baziRecordId(BaziResult result) =>
       'bazi:${result.subject.caseId}:${result.generatedAt.microsecondsSinceEpoch}';
+  static String ziweiRecordId(ZiweiChartResult result) =>
+      'ziwei:${result.foundation.subject.caseId}:'
+      '${result.foundation.subject.birthDateTime.microsecondsSinceEpoch}';
   static String meihuaRecordId(MeihuaResult result) =>
       'meihua:${result.generatedAt.microsecondsSinceEpoch}:${result.method.name}';
   static String todayFortuneRecordId(TodayFortune result) =>
@@ -607,6 +613,33 @@ class DivinationHistoryRepository extends ChangeNotifier {
         algorithmVersion: result.algorithm.version,
         schemaVersion: zhaoxingzhaiSchemaVersion,
         caseSnapshot: result.subject,
+      ),
+    );
+  }
+
+  Future<void> addZiwei(ZiweiChartResult result) async {
+    final now = DateTime.now();
+    final subject = result.foundation.subject;
+    final lifeStars = result.lifePalace.stars.map((e) => e.name).join('、');
+    await add(
+      DivinationHistoryRecord(
+        id: ziweiRecordId(result),
+        type: 'ziwei',
+        title:
+            '${subject.displayName} · 命宫${result.foundation.lifeBranch} · ${result.foundation.fiveElementBureau}',
+        summary:
+            '命宫星曜：${lifeStars.isEmpty ? '暂无' : lifeStars}；'
+            '${result.limits.direction.label}；${result.yearStem}${result.yearBranch}年',
+        createdAt: now,
+        payload: {
+          ...result.toJson(),
+          'algorithm': AlgorithmCatalog.ziwei.toJson(),
+          'savedAt': now.toUtc().toIso8601String(),
+        },
+        algorithmId: AlgorithmCatalog.ziwei.id,
+        algorithmVersion: AlgorithmCatalog.ziwei.version,
+        schemaVersion: zhaoxingzhaiSchemaVersion,
+        caseSnapshot: subject,
       ),
     );
   }

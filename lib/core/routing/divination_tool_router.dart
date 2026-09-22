@@ -4,6 +4,7 @@ enum DivinationTool {
   xiaoliuren('xiaoliuren', '小六壬'),
   ssgw('ssgw', '灵签'),
   liuyao('liuyao', '六爻排盘'),
+  ziwei('ziwei', '紫微斗数'),
   dailyHexagram('daily-hexagram', '每日一卦');
 
   const DivinationTool(this.id, this.label);
@@ -54,6 +55,9 @@ abstract final class DivinationToolRouter {
     }
     if (_containsAny(question, ['六爻', '纳甲', '世爻', '应爻'])) {
       return choice(DivinationTool.liuyao, '问题明确指定了六爻或纳甲排盘。', 1);
+    }
+    if (_containsAny(question, ['紫微斗数', '紫微命盘', '斗数', '大限'])) {
+      return choice(DivinationTool.ziwei, '问题明确指定了紫微斗数或大限。', 1);
     }
     if (_containsAny(question, ['塔罗', '牌阵', '抽牌'])) {
       return choice(DivinationTool.tarot, '问题明确提到塔罗、牌阵或抽牌。', 1);

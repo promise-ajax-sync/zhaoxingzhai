@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": 4,
+  "ruleset": "zhaoxingzhai-ziwei-foundation-stars-brightness-relations-limits-v3",
+  "school": "traditional-default",
+  "status": "foundation-stars-brightness-relations-and-decadal-mutagens",
+  "files": ["palaces.json", "stars.json", "mutagens.json", "brightness.json", "placement_rules.json"],
+  "principles": [
+    "项目独立定义数据协议",
+    "古籍出处与现代解释分离",
+    "AI只解释程序已计算的盘面事实",
+    "存在流派争议的规则必须标记状态"
+  ],
+  "sources": [
+    {
+      "id": "ziwei-doushu-quanshu",
+      "title": "紫微斗数全书",
+      "usage": "安星规则、星曜性质与传统格局的校勘入口",
+      "status": "pending-edition-lock"
+    },
+    {
+      "id": "horosa-quanshu-seven-tier-brightness",
+      "title": "horosa-skill 紫微全书系七档亮度整理表",
+      "usage": "20 颗星曜的庙旺得利平不陷标签",
+      "license": "AGPL-3.0",
+      "status": "pinned-by-generated-file"
+    }
+  ],
+  "licenseNote": "本目录的数据模型和现代解释由本项目独立整理；古籍条文后续按具体底本记录出处。"
+}

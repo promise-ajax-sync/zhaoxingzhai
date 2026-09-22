@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "zhaoxingzhai-ziwei-foundation-stars-v1",
+  "branchOrder": ["寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥", "子", "丑"],
+  "palaceOrderFromLife": ["命宫", "兄弟宫", "夫妻宫", "子女宫", "财帛宫", "疾厄宫", "迁移宫", "交友宫", "官禄宫", "田宅宫", "福德宫", "父母宫"],
+  "lifePalaceRule": "从寅宫起正月顺数至生月，再从该宫起子时逆数至生时",
+  "bodyPalaceRule": "从寅宫起正月顺数至生月，再从该宫起子时顺数至生时",
+  "palaceStemRule": "按生年天干使用五虎遁，从寅宫起月干后顺布十二宫",
+  "bureauRule": "取命宫干支纳音五行：水二局、木三局、金四局、土五局、火六局",
+  "majorStarRule": "按农历生日与五行局定紫微，布紫微星系；天府取紫微宫位镜像后布天府星系",
+  "monthlyStars": {
+    "左辅": "辰宫起正月，顺数生月",
+    "右弼": "戌宫起正月，逆数生月"
+  },
+  "hourlyStars": {
+    "文昌": "戌宫起子时，逆数生时",
+    "文曲": "辰宫起子时，顺数生时",
+    "地劫": "亥宫起子时，顺数生时",
+    "地空": "亥宫起子时，逆数生时"
+  },
+  "lucunRule": "甲寅、乙卯、丙戊巳、丁己午、庚申、辛酉、壬亥、癸子；擎羊居禄存后一宫，陀罗居前一宫",
+  "tianmaRule": "寅午戌在申，申子辰在寅，巳酉丑在亥，亥卯未在巳",
+  "fireBellRule": {
+    "starts": "寅午戌火丑铃卯；申子辰火寅铃戌；巳酉丑火卯铃戌；亥卯未火酉铃戌",
+    "hourDirection": "火星顺数生时，铃星逆数生时",
+    "status": "provisional-school-variant"
+  },
+  "mutagenRule": "按生年天干四化表标记已安置星曜，不使用 AI 推算四化",
+  "palaceRelationsRule": "以目标宫为起点，加四宫与加八宫为三合宫，加六宫为对宫，合称三方四正",
+  "decadalMutagenRule": "每个大限取限宫天干，按同一十干四化表定禄权科忌，落宫使用本命星曜物理宫位",
+  "status": "implemented-with-tests-fire-bell-vectors-pending-source-edition-lock"
+}

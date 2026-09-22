@@ -73,6 +73,12 @@ abstract final class AlgorithmCatalog {
     ruleset: 'lunar-true-solar-hidden-stems-yun-v2',
   );
 
+  static const ziwei = AlgorithmDescriptor(
+    id: 'ziwei',
+    version: 3,
+    ruleset: 'foundation-28-stars-brightness-relations-limits-v3',
+  );
+
   static const meihua = AlgorithmDescriptor(
     id: 'meihua',
     version: 1,

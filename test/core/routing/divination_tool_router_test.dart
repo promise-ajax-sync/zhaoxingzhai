@@ -9,6 +9,13 @@ void main() {
     );
   });
 
+  test('明确提到紫微或大限时进入紫微斗数', () {
+    expect(
+      DivinationToolRouter.select('请看紫微命盘的大限')?.tool,
+      DivinationTool.ziwei,
+    );
+  });
+
   test('明确指定术式时优先按名称路由', () {
     expect(
       DivinationToolRouter.select('用塔罗看看这段关系')?.tool,

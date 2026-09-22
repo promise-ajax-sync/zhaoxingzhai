@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "palaces": [
+    {"id":"life","name":"命宫","topics":["自我特质","人生主轴"],"boundary":"不等同于固定性格或命运结论"},
+    {"id":"siblings","name":"兄弟宫","topics":["手足关系","同辈互动"],"boundary":"不能推断他人真实意图"},
+    {"id":"spouse","name":"夫妻宫","topics":["亲密关系","相处模式"],"boundary":"不能断言婚姻成败或忠诚"},
+    {"id":"children","name":"子女宫","topics":["子女互动","照顾与创造"],"boundary":"不能预测生育医学结果"},
+    {"id":"wealth","name":"财帛宫","topics":["资源观念","收入方式"],"boundary":"不能作为投资收益保证"},
+    {"id":"health","name":"疾厄宫","topics":["身心节奏","压力表现"],"boundary":"不能用于疾病诊断"},
+    {"id":"travel","name":"迁移宫","topics":["外部环境","迁动与社会表现"],"boundary":"不能保证迁居或出行结果"},
+    {"id":"friends","name":"交友宫","topics":["合作关系","社交网络"],"boundary":"不能替代现实背景调查"},
+    {"id":"career","name":"官禄宫","topics":["事业方式","职责与发展"],"boundary":"不能保证录用、升职或创业成功"},
+    {"id":"property","name":"田宅宫","topics":["居住环境","家庭资源"],"boundary":"不能作为房地产决策依据"},
+    {"id":"wellbeing","name":"福德宫","topics":["内在需求","精神状态"],"boundary":"不能替代心理健康评估"},
+    {"id":"parents","name":"父母宫","topics":["长辈互动","支持结构"],"boundary":"不能推断长辈寿命或疾病"}
+  ]
+}

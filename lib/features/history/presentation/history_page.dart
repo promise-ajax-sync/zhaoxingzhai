@@ -289,7 +289,8 @@ class _HistoryRecordCard extends StatelessWidget {
         record.type == 'daily-hexagram' ||
         record.type == 'meihua' ||
         record.type == 'liuyao' ||
-        record.type == 'bazi';
+        record.type == 'bazi' ||
+        record.type == 'ziwei';
 
     return AppCard(
       onTap: hasDetails
@@ -297,6 +298,7 @@ class _HistoryRecordCard extends StatelessWidget {
               'meihua' => _showMeihuaDetails(context, record),
               'liuyao' => _showLiuyaoDetails(context, record),
               'bazi' => _showBaziDetails(context, record),
+              'ziwei' => _showZiweiDetails(context, record),
               _ => _showDailyHexagramDetails(context, record),
             }
           : null,
@@ -540,11 +542,166 @@ class _HistoryRecordCard extends StatelessWidget {
     );
   }
 
+  Future<void> _showZiweiDetails(
+    BuildContext context,
+    DivinationHistoryRecord record,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('紫微斗数 · ${record.algorithmLabel}'),
+        content: SizedBox(
+          width: 680,
+          child: SingleChildScrollView(
+            child: _ZiweiHistoryContent(payload: record.payload),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatTime(DateTime time) {
     return '${time.year}-${time.month.toString().padLeft(2, '0')}-'
         '${time.day.toString().padLeft(2, '0')} '
         '${time.hour.toString().padLeft(2, '0')}:'
         '${time.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _ZiweiHistoryContent extends StatelessWidget {
+  const _ZiweiHistoryContent({required this.payload});
+
+  final Map<String, dynamic> payload;
+
+  @override
+  Widget build(BuildContext context) {
+    final foundation = payload['foundation'] is Map
+        ? Map<String, dynamic>.from(payload['foundation'] as Map)
+        : const <String, dynamic>{};
+    final palaces = payload['palaces'] is List
+        ? (payload['palaces'] as List).whereType<Map>().toList()
+        : const <Map>[];
+    final limits = payload['limits'] is Map
+        ? Map<String, dynamic>.from(payload['limits'] as Map)
+        : const <String, dynamic>{};
+    final decades = limits['decades'] is List
+        ? (limits['decades'] as List).whereType<Map>().toList()
+        : const <Map>[];
+    final relations = payload['relations'] is List
+        ? (payload['relations'] as List).whereType<Map>().toList()
+        : const <Map>[];
+    final lifeRelations = _lifeRelations(relations);
+    final decadeTransformations = payload['decadeTransformations'] is List
+        ? (payload['decadeTransformations'] as List).whereType<Map>().toList()
+        : const <Map>[];
+    if (palaces.isEmpty) return const Text('这条紫微历史记录的数据不完整。');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '生年：${payload['yearStem'] ?? ''}${payload['yearBranch'] ?? ''} · '
+          '命宫${foundation['lifeBranch'] ?? '未记录'} · '
+          '身宫${foundation['bodyBranch'] ?? '未记录'} · '
+          '${foundation['fiveElementBureau'] ?? '未记录'}',
+        ),
+        const SizedBox(height: AppTheme.space3),
+        for (final palace in palaces) ...[
+          Text(
+            '${palace['name'] ?? ''}（${palace['ganzhi'] ?? palace['branch'] ?? ''}）：'
+            '${_starNames(palace['stars'])}',
+          ),
+          const SizedBox(height: AppTheme.space2),
+        ],
+        const Divider(),
+        if (lifeRelations != null) ...[
+          Text(_relationSummary(lifeRelations)),
+          const SizedBox(height: AppTheme.space2),
+        ],
+        Text(
+          '大限：${limits['directionLabel'] ?? '未记录'} · '
+          '${limits['startNominalAge'] ?? '未记录'}岁起限',
+        ),
+        if (decades.isNotEmpty) ...[
+          const SizedBox(height: AppTheme.space2),
+          Wrap(
+            spacing: AppTheme.space3,
+            runSpacing: AppTheme.space2,
+            children: [
+              for (final decade in decades)
+                Text(
+                  '${decade['startNominalAge']}—${decade['endNominalAge']}岁 '
+                  '${(decade['palace'] as Map?)?['name'] ?? ''}',
+                ),
+            ],
+          ),
+        ],
+        if (decadeTransformations.isNotEmpty) ...[
+          const SizedBox(height: AppTheme.space3),
+          Text('首限四化：${_transformationSummary(decadeTransformations.first)}'),
+        ],
+      ],
+    );
+  }
+
+  static String _starNames(Object? raw) {
+    if (raw is! List) return '暂无';
+    final names = raw
+        .whereType<Map>()
+        .map((star) {
+          final name = star['name'] ?? '';
+          final mutagen = star['mutagen'];
+          final brightness = star['brightness'];
+          final brightnessLabel = brightness == null ? '' : '（$brightness）';
+          return mutagen == null
+              ? '$name$brightnessLabel'
+              : '$name$brightnessLabel化$mutagen';
+        })
+        .where((name) => name.isNotEmpty)
+        .join('、');
+    return names.isEmpty ? '暂无' : names;
+  }
+
+  static Map? _lifeRelations(List<Map> relations) {
+    for (final relation in relations) {
+      final source = relation['source'];
+      if (source is Map && source['isLife'] == true) {
+        return relation;
+      }
+    }
+    return null;
+  }
+
+  static String _relationSummary(Map relation) {
+    final trines = relation['trines'] is List
+        ? (relation['trines'] as List)
+              .whereType<Map>()
+              .map((e) => e['name'])
+              .whereType<String>()
+              .join('、')
+        : '';
+    final opposite = relation['opposite'] is Map
+        ? (relation['opposite'] as Map)['name'] ?? '未记录'
+        : '未记录';
+    return '命宫三方：$trines；对宫：$opposite';
+  }
+
+  static String _transformationSummary(Map transformation) {
+    if (transformation['placements'] is! List) return '未记录';
+    return (transformation['placements'] as List)
+        .whereType<Map>()
+        .map((item) {
+          final destination = item['destination'] is Map
+              ? (item['destination'] as Map)['name'] ?? ''
+              : '';
+          return '${item['starName'] ?? ''}化${item['mutagen'] ?? ''}入$destination';
+        })
+        .join('、');
   }
 }
 
