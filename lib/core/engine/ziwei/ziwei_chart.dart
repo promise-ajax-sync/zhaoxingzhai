@@ -90,6 +90,56 @@ class ZiweiDecadeTransformations {
   };
 }
 
+class ZiweiAnnualPalace {
+  const ZiweiAnnualPalace({required this.name, required this.position});
+
+  final String name;
+  final ZiweiPalacePosition position;
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'position': position.toJson(),
+  };
+}
+
+class ZiweiAnnualResult {
+  const ZiweiAnnualResult({
+    required this.lunarYear,
+    required this.yearStem,
+    required this.yearBranch,
+    required this.nominalAge,
+    required this.lifePalace,
+    required this.palaces,
+    required this.transformations,
+    required this.activeDecade,
+  });
+
+  static const algorithmVersion = 'ziwei-annual-taisu-mutagens-v1';
+  final int lunarYear;
+  final String yearStem;
+  final String yearBranch;
+  final int nominalAge;
+  final ZiweiPalacePosition lifePalace;
+  final List<ZiweiAnnualPalace> palaces;
+  final List<ZiweiMutagenPlacement> transformations;
+  final ZiweiDecadeLimit? activeDecade;
+
+  Map<String, dynamic> toJson() => {
+    'algorithmVersion': algorithmVersion,
+    'yearConvention': 'lunar-year',
+    'lunarYear': lunarYear,
+    'yearStem': yearStem,
+    'yearBranch': yearBranch,
+    'nominalAge': nominalAge,
+    'lifePalace': lifePalace.toJson(),
+    'palaces': palaces.map((e) => e.toJson()).toList(growable: false),
+    'transformations': transformations
+        .map((e) => e.toJson())
+        .toList(growable: false),
+    if (activeDecade != null) 'activeDecade': activeDecade!.toJson(),
+  };
+}
+
 class ZiweiChartResult {
   const ZiweiChartResult({
     required this.foundation,
@@ -100,9 +150,10 @@ class ZiweiChartResult {
     required this.palaces,
     required this.relations,
     required this.decadeTransformations,
+    required this.annual,
   });
   static const algorithmVersion =
-      'ziwei-foundation-stars-brightness-relations-v3';
+      'ziwei-foundation-brightness-limits-annual-v4';
   final ZiweiFoundationResult foundation;
   final String yearStem;
   final String yearBranch;
@@ -111,6 +162,7 @@ class ZiweiChartResult {
   final List<ZiweiChartPalace> palaces;
   final List<ZiweiPalaceRelations> relations;
   final List<ZiweiDecadeTransformations> decadeTransformations;
+  final ZiweiAnnualResult annual;
   ZiweiChartPalace get lifePalace =>
       palaces.singleWhere((e) => e.position.isLife);
   Map<String, dynamic> toJson() => {
@@ -125,6 +177,7 @@ class ZiweiChartResult {
     'decadeTransformations': decadeTransformations
         .map((e) => e.toJson())
         .toList(growable: false),
+    'annual': annual.toJson(),
   };
 }
 
@@ -149,7 +202,10 @@ abstract final class ZiweiChartEngine {
   };
   static const _mutagenLabels = ['禄', '权', '科', '忌'];
 
-  static Future<ZiweiChartResult> calculate(CaseSnapshot subject) async {
+  static Future<ZiweiChartResult> calculate(
+    CaseSnapshot subject, {
+    int? targetLunarYear,
+  }) async {
     final foundation = ZiweiFoundationEngine.calculate(subject);
     final mutagens = await ZiweiData.loadMutagens();
     final brightness = await ZiweiData.loadBrightness();
@@ -267,6 +323,13 @@ abstract final class ZiweiChartEngine {
           );
         })
         .toList(growable: false);
+    final annual = _annual(
+      lunarYear: targetLunarYear ?? foundation.lunarYear,
+      birthLunarYear: foundation.lunarYear,
+      palaces: palaces,
+      limits: limits,
+      mutagens: mutagens,
+    );
     return ZiweiChartResult(
       foundation: foundation,
       yearStem: yearStem,
@@ -276,6 +339,64 @@ abstract final class ZiweiChartEngine {
       palaces: palaces,
       relations: relations,
       decadeTransformations: decadeTransformations,
+      annual: annual,
+    );
+  }
+
+  static ZiweiAnnualResult _annual({
+    required int lunarYear,
+    required int birthLunarYear,
+    required List<ZiweiChartPalace> palaces,
+    required ZiweiLimitResult limits,
+    required Map<String, List<String>> mutagens,
+  }) {
+    if (lunarYear < birthLunarYear) {
+      throw ArgumentError('流年不能早于出生农历年');
+    }
+    final annualLunar = Lunar.fromYmd(lunarYear, 1, 1);
+    final yearStem = annualLunar.getYearGan();
+    final yearBranch = annualLunar.getYearZhi();
+    final lifeIndex = _branchIndex(yearBranch);
+    final palaceByIndex = {
+      for (final palace in palaces) palace.position.index: palace,
+    };
+    final annualPalaces = List.generate(12, (offset) {
+      final index = _mod(lifeIndex - offset, 12);
+      return ZiweiAnnualPalace(
+        name: ZiweiFoundationEngine.palaceNames[offset],
+        position: palaceByIndex[index]!.position,
+      );
+    }, growable: false);
+    final sequence = mutagens[yearStem] ?? const <String>[];
+    final transformations = List.generate(sequence.length, (index) {
+      final starName = sequence[index];
+      final destination = palaces.singleWhere(
+        (palace) => palace.stars.any((star) => star.name == starName),
+      );
+      return ZiweiMutagenPlacement(
+        starName: starName,
+        mutagen: _mutagenLabels[index],
+        destination: destination.position,
+      );
+    }, growable: false);
+    final nominalAge = lunarYear - birthLunarYear + 1;
+    ZiweiDecadeLimit? activeDecade;
+    for (final limit in limits.decades) {
+      if (nominalAge >= limit.startNominalAge &&
+          nominalAge <= limit.endNominalAge) {
+        activeDecade = limit;
+        break;
+      }
+    }
+    return ZiweiAnnualResult(
+      lunarYear: lunarYear,
+      yearStem: yearStem,
+      yearBranch: yearBranch,
+      nominalAge: nominalAge,
+      lifePalace: palaceByIndex[lifeIndex]!.position,
+      palaces: annualPalaces,
+      transformations: transformations,
+      activeDecade: activeDecade,
     );
   }
 

@@ -53,14 +53,14 @@ void main() {
   test('数据清单声明项目独立规则版本', () async {
     final manifest = await ZiweiData.loadManifest();
     expect(manifest['schemaVersion'], 1);
-    expect(manifest['dataVersion'], 4);
+    expect(manifest['dataVersion'], 5);
     expect(
       manifest['ruleset'],
-      'zhaoxingzhai-ziwei-foundation-stars-brightness-relations-limits-v3',
+      'zhaoxingzhai-ziwei-foundation-brightness-limits-annual-v4',
     );
     expect(
       manifest['status'],
-      'foundation-stars-brightness-relations-and-decadal-mutagens',
+      'foundation-brightness-decadal-and-annual-mutagens',
     );
     expect(
       (manifest['files'] as List).toSet(),

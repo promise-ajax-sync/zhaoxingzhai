@@ -38,12 +38,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('紫微斗数'), findsOneWidget);
     expect(find.textContaining('命宫 ·'), findsWidgets);
-    expect(find.textContaining('火六局'), findsOneWidget);
+    expect(find.textContaining('火六局'), findsWidgets);
     expect(find.textContaining('化禄'), findsWidgets);
     expect(find.textContaining('三方'), findsWidgets);
     expect(find.textContaining('对宫'), findsWidgets);
     expect(find.textContaining('化禄入'), findsWidgets);
-    expect(find.text('大限'), findsOneWidget);
+    expect(find.text('大限'), findsWidgets);
+    expect(find.text('流年'), findsWidgets);
+    expect(find.textContaining('农历年'), findsWidgets);
+    expect(find.textContaining('流年四化'), findsOneWidget);
+    expect(find.textContaining('虚岁'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('ziwei-fixed-palace-chart')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('ziwei-layer-natal')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ziwei-layer-decade')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ziwei-layer-annual')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('ziwei-layer-annual')));
+    await tester.pump();
+    expect(find.textContaining('流年命宫'), findsWidgets);
     await tester.ensureVisible(find.text('保存紫微记录'));
     await tester.tap(find.text('保存紫微记录'));
     await tester.pump();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lunar/lunar.dart';
 import 'package:zhaoxingzhai/core/ai/ai_interpretation_models.dart';
 import 'package:zhaoxingzhai/core/ai/ai_interpretation_service.dart';
 import 'package:zhaoxingzhai/core/engine/ziwei/ziwei_chart.dart';
@@ -7,6 +8,15 @@ import 'package:zhaoxingzhai/core/models/case_profile.dart';
 import 'package:zhaoxingzhai/core/models/divination_question.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 import 'package:zhaoxingzhai/core/widgets/ai_interpretation_card.dart';
+
+enum _ZiweiDisplayLayer {
+  natal('本命'),
+  decade('大限'),
+  annual('流年');
+
+  const _ZiweiDisplayLayer(this.label);
+  final String label;
+}
 
 class ZiweiPage extends StatefulWidget {
   const ZiweiPage({
@@ -38,15 +48,27 @@ class _ZiweiPageState extends State<ZiweiPage> {
   AiInterpretationResponse? _response;
   Object? _aiError;
   bool _aiLoading = false;
+  int? _selectedLunarYear;
+  _ZiweiDisplayLayer _displayLayer = _ZiweiDisplayLayer.natal;
 
   Future<ZiweiChartResult>? _resultFuture(CaseSnapshot? subject) {
     if (subject == null) return null;
+    final birthLunarYear = _birthLunarYear(subject);
+    final selectedYear = _selectedLunarYear ?? _currentLunarYear();
+    final targetYear = selectedYear < birthLunarYear
+        ? birthLunarYear
+        : selectedYear;
+    _selectedLunarYear = targetYear;
     final key =
         '${subject.caseId}:${subject.birthDateTime.toIso8601String()}:'
-        '${subject.calendarType.name}:${subject.isLeapMonth}:${subject.gender.name}';
+        '${subject.calendarType.name}:${subject.isLeapMonth}:${subject.gender.name}:'
+        '$targetYear';
     if (_future == null || key != _caseKey) {
       _caseKey = key;
-      _future = ZiweiChartEngine.calculate(subject);
+      _future = ZiweiChartEngine.calculate(
+        subject,
+        targetLunarYear: targetYear,
+      );
       _response = null;
       _aiError = null;
     }
@@ -129,27 +151,41 @@ class _ZiweiPageState extends State<ZiweiPage> {
                 '命宫${result.foundation.lifeBranch} · 身宫${result.foundation.bodyBranch} · '
                 '${result.foundation.fiveElementBureau}',
               ),
-              const SizedBox(height: AppTheme.space4),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.maxWidth >= 900
-                      ? (constraints.maxWidth - 3 * AppTheme.space3) / 4
-                      : constraints.maxWidth >= 600
-                      ? (constraints.maxWidth - AppTheme.space3) / 2
-                      : constraints.maxWidth;
-                  return Wrap(
-                    spacing: AppTheme.space3,
-                    runSpacing: AppTheme.space3,
-                    children: [
-                      for (final palace in result.palaces)
-                        SizedBox(
-                          width: width,
-                          child: _palaceCard(context, result, palace),
-                        ),
+              const SizedBox(height: AppTheme.space3),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 220,
+                  child: DropdownButtonFormField<int>(
+                    key: ValueKey(
+                      'ziwei-annual-year-${result.annual.lunarYear}',
+                    ),
+                    initialValue: result.annual.lunarYear,
+                    decoration: const InputDecoration(labelText: '查看流年'),
+                    items: [
+                      for (
+                        var year = result.foundation.lunarYear;
+                        year <= result.foundation.lunarYear + 120;
+                        year++
+                      )
+                        DropdownMenuItem(value: year, child: Text('$year 农历年')),
                     ],
-                  );
-                },
+                    onChanged: (year) {
+                      if (year == null || year == _selectedLunarYear) return;
+                      setState(() {
+                        _selectedLunarYear = year;
+                        _future = null;
+                      });
+                    },
+                  ),
+                ),
               ),
+              const SizedBox(height: AppTheme.space4),
+              _layerSelector(),
+              const SizedBox(height: AppTheme.space3),
+              _fixedPalaceChart(context, result),
+              const SizedBox(height: AppTheme.space4),
+              _annualCard(context, result),
               const SizedBox(height: AppTheme.space4),
               Card(
                 child: Padding(
@@ -185,7 +221,8 @@ class _ZiweiPageState extends State<ZiweiPage> {
               const Text(
                 '当前版本展示确定性命身宫、28 星、生年四化和大限宫位。'
                 '全书系七档亮度表覆盖 20 星，未收录星曜不混补；'
-                '流年流月尚未接入，不作为现实吉凶保证。',
+                '流年按所选农历年计算太岁命宫与四化；流月、流日尚未接入，'
+                '不作为现实吉凶保证。',
               ),
               const SizedBox(height: AppTheme.space3),
               FilledButton.icon(
@@ -225,11 +262,16 @@ class _ZiweiPageState extends State<ZiweiPage> {
       if (position.isLife) '命',
       if (position.isBody) '身',
     ].join('·');
+    final overlay = _layerOverlay(result, palace);
+    final highlighted = _isLayerHighlighted(result, palace);
     return Card(
+      color: highlighted
+          ? Theme.of(context).colorScheme.primaryContainer
+          : null,
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.space3),
+        padding: const EdgeInsets.all(AppTheme.space2),
         child: SizedBox(
-          height: 178,
+          height: 184,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -250,6 +292,16 @@ class _ZiweiPageState extends State<ZiweiPage> {
                 '对宫 ${relations.opposite.name}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              if (overlay != null) ...[
+                const SizedBox(height: AppTheme.space1),
+                Text(
+                  overlay,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
               const SizedBox(height: AppTheme.space2),
               Expanded(
                 child: SingleChildScrollView(
@@ -275,6 +327,133 @@ class _ZiweiPageState extends State<ZiweiPage> {
     );
   }
 
+  Widget _layerSelector() => Wrap(
+    key: const ValueKey('ziwei-layer-selector'),
+    spacing: AppTheme.space2,
+    children: [
+      for (final layer in _ZiweiDisplayLayer.values)
+        ChoiceChip(
+          key: ValueKey('ziwei-layer-${layer.name}'),
+          label: Text(layer.label),
+          selected: _displayLayer == layer,
+          onSelected: (_) => setState(() => _displayLayer = layer),
+        ),
+    ],
+  );
+
+  Widget _fixedPalaceChart(BuildContext context, ZiweiChartResult result) {
+    const gridIndexes = [9, 8, 7, 6, 10, -1, -2, 5, 11, -3, -4, 4, 0, 1, 2, 3];
+    final byIndex = {
+      for (final palace in result.palaces) palace.position.index: palace,
+    };
+    return Card(
+      key: const ValueKey('ziwei-fixed-palace-chart'),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space2),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: 960,
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: gridIndexes.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                childAspectRatio: 1.2,
+              ),
+              itemBuilder: (context, gridIndex) {
+                final palaceIndex = gridIndexes[gridIndex];
+                if (palaceIndex >= 0) {
+                  return _palaceCard(context, result, byIndex[palaceIndex]!);
+                }
+                return _chartCenterCell(context, result, palaceIndex);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chartCenterCell(
+    BuildContext context,
+    ZiweiChartResult result,
+    int slot,
+  ) {
+    final annual = result.annual;
+    final active = annual.activeDecade;
+    final (title, content) = switch (slot) {
+      -1 => ('角色', result.foundation.subject.displayName),
+      -2 => (
+        '本命',
+        '${result.yearStem}${result.yearBranch} · ${result.foundation.fiveElementBureau}',
+      ),
+      -3 => (
+        '大限',
+        active == null
+            ? '童限或未确定'
+            : '${active.startNominalAge}—${active.endNominalAge}岁 ${active.palace.name}',
+      ),
+      _ => (
+        '流年',
+        '${annual.lunarYear} ${annual.yearStem}${annual.yearBranch} · 虚岁${annual.nominalAge}',
+      ),
+    };
+    return Card(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space3),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppTheme.space2),
+            Text(content, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _isLayerHighlighted(ZiweiChartResult result, ZiweiChartPalace palace) =>
+      switch (_displayLayer) {
+        _ZiweiDisplayLayer.natal => palace.position.isLife,
+        _ZiweiDisplayLayer.decade =>
+          result.annual.activeDecade?.palace.index == palace.position.index,
+        _ZiweiDisplayLayer.annual =>
+          result.annual.lifePalace.index == palace.position.index,
+      };
+
+  String? _layerOverlay(ZiweiChartResult result, ZiweiChartPalace palace) {
+    switch (_displayLayer) {
+      case _ZiweiDisplayLayer.natal:
+        return palace.position.isLife ? '本命命宫' : null;
+      case _ZiweiDisplayLayer.decade:
+        final active = result.annual.activeDecade;
+        if (active == null || active.palace.index != palace.position.index) {
+          return null;
+        }
+        final transformations = result.decadeTransformations
+            .singleWhere((item) => item.limit.order == active.order)
+            .placements
+            .map((item) => '${item.starName}化${item.mutagen}')
+            .join('、');
+        return '当前大限 · $transformations';
+      case _ZiweiDisplayLayer.annual:
+        final annualPalace = result.annual.palaces.singleWhere(
+          (item) => item.position.index == palace.position.index,
+        );
+        final transformations = result.annual.transformations
+            .where((item) => item.destination.index == palace.position.index)
+            .map((item) => '${item.starName}化${item.mutagen}')
+            .join('、');
+        return transformations.isEmpty
+            ? '流年${annualPalace.name}'
+            : '流年${annualPalace.name} · $transformations';
+    }
+  }
+
   String _decadeMutagens(ZiweiChartResult result, int order) {
     final transformation = result.decadeTransformations.singleWhere(
       (e) => e.limit.order == order,
@@ -282,5 +461,63 @@ class _ZiweiPageState extends State<ZiweiPage> {
     return transformation.placements
         .map((e) => '${e.starName}化${e.mutagen}入${e.destination.name}')
         .join('、');
+  }
+
+  Widget _annualCard(BuildContext context, ZiweiChartResult result) {
+    final annual = result.annual;
+    final active = annual.activeDecade;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.space4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('流年', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              '${annual.lunarYear} 农历年 · ${annual.yearStem}${annual.yearBranch} · '
+              '虚岁 ${annual.nominalAge} · 流年命宫${annual.lifePalace.name}'
+              '（${annual.lifePalace.branch}）',
+            ),
+            Text(
+              active == null
+                  ? '当前处于童限或大限未确定'
+                  : '当前大限：${active.startNominalAge}—${active.endNominalAge}岁 '
+                        '${active.palace.name}（${active.palace.branch}）',
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Text(
+              '流年四化：${annual.transformations.map((e) => '${e.starName}化${e.mutagen}入${e.destination.name}').join('、')}',
+            ),
+            const SizedBox(height: AppTheme.space2),
+            Wrap(
+              spacing: AppTheme.space3,
+              runSpacing: AppTheme.space2,
+              children: [
+                for (final palace in annual.palaces)
+                  Text(
+                    '${palace.name}→${palace.position.name}（${palace.position.branch}）',
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static int _currentLunarYear() {
+    final now = DateTime.now();
+    return Solar.fromYmd(now.year, now.month, now.day).getLunar().getYear();
+  }
+
+  static int _birthLunarYear(CaseSnapshot subject) {
+    final value = subject.birthDateTime;
+    if (subject.calendarType == CaseCalendarType.lunar) return value.year;
+    return Solar.fromYmd(
+      value.year,
+      value.month,
+      value.day,
+    ).getLunar().getYear();
   }
 }

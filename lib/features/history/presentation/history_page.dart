@@ -600,6 +600,9 @@ class _ZiweiHistoryContent extends StatelessWidget {
     final decadeTransformations = payload['decadeTransformations'] is List
         ? (payload['decadeTransformations'] as List).whereType<Map>().toList()
         : const <Map>[];
+    final annual = payload['annual'] is Map
+        ? Map<String, dynamic>.from(payload['annual'] as Map)
+        : const <String, dynamic>{};
     if (palaces.isEmpty) return const Text('这条紫微历史记录的数据不完整。');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -644,6 +647,15 @@ class _ZiweiHistoryContent extends StatelessWidget {
         if (decadeTransformations.isNotEmpty) ...[
           const SizedBox(height: AppTheme.space3),
           Text('首限四化：${_transformationSummary(decadeTransformations.first)}'),
+        ],
+        if (annual.isNotEmpty) ...[
+          const Divider(height: AppTheme.space5),
+          Text(
+            '流年：${annual['lunarYear'] ?? '未记录'} 农历年 · '
+            '${annual['yearStem'] ?? ''}${annual['yearBranch'] ?? ''} · '
+            '虚岁 ${annual['nominalAge'] ?? '未记录'}',
+          ),
+          Text('流年四化：${_annualTransformations(annual)}'),
         ],
       ],
     );
@@ -702,6 +714,21 @@ class _ZiweiHistoryContent extends StatelessWidget {
           return '${item['starName'] ?? ''}化${item['mutagen'] ?? ''}入$destination';
         })
         .join('、');
+  }
+
+  static String _annualTransformations(Map<String, dynamic> annual) {
+    final transformations = annual['transformations'];
+    if (transformations is! List) return '未记录';
+    final summary = transformations
+        .whereType<Map>()
+        .map((item) {
+          final destination = item['destination'] is Map
+              ? (item['destination'] as Map)['name'] ?? ''
+              : '';
+          return '${item['starName'] ?? ''}化${item['mutagen'] ?? ''}入$destination';
+        })
+        .join('、');
+    return summary.isEmpty ? '未记录' : summary;
   }
 }
 

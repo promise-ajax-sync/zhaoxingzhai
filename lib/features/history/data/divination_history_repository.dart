@@ -205,7 +205,8 @@ class DivinationHistoryRepository extends ChangeNotifier {
       'bazi:${result.subject.caseId}:${result.generatedAt.microsecondsSinceEpoch}';
   static String ziweiRecordId(ZiweiChartResult result) =>
       'ziwei:${result.foundation.subject.caseId}:'
-      '${result.foundation.subject.birthDateTime.microsecondsSinceEpoch}';
+      '${result.foundation.subject.birthDateTime.microsecondsSinceEpoch}:'
+      '${result.annual.lunarYear}';
   static String meihuaRecordId(MeihuaResult result) =>
       'meihua:${result.generatedAt.microsecondsSinceEpoch}:${result.method.name}';
   static String todayFortuneRecordId(TodayFortune result) =>
@@ -626,10 +627,13 @@ class DivinationHistoryRepository extends ChangeNotifier {
         id: ziweiRecordId(result),
         type: 'ziwei',
         title:
-            '${subject.displayName} · 命宫${result.foundation.lifeBranch} · ${result.foundation.fiveElementBureau}',
+            '${subject.displayName} · ${result.annual.lunarYear}流年 · '
+            '命宫${result.foundation.lifeBranch} · ${result.foundation.fiveElementBureau}',
         summary:
             '命宫星曜：${lifeStars.isEmpty ? '暂无' : lifeStars}；'
-            '${result.limits.direction.label}；${result.yearStem}${result.yearBranch}年',
+            '${result.limits.direction.label}；'
+            '流年${result.annual.yearStem}${result.annual.yearBranch}、'
+            '虚岁${result.annual.nominalAge}',
         createdAt: now,
         payload: {
           ...result.toJson(),

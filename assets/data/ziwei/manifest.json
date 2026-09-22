@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 4,
-  "ruleset": "zhaoxingzhai-ziwei-foundation-stars-brightness-relations-limits-v3",
+  "dataVersion": 5,
+  "ruleset": "zhaoxingzhai-ziwei-foundation-brightness-limits-annual-v4",
   "school": "traditional-default",
-  "status": "foundation-stars-brightness-relations-and-decadal-mutagens",
+  "status": "foundation-brightness-decadal-and-annual-mutagens",
   "files": ["palaces.json", "stars.json", "mutagens.json", "brightness.json", "placement_rules.json"],
   "principles": [
     "项目独立定义数据协议",

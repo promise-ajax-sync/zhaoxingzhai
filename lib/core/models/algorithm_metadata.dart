@@ -75,8 +75,8 @@ abstract final class AlgorithmCatalog {
 
   static const ziwei = AlgorithmDescriptor(
     id: 'ziwei',
-    version: 3,
-    ruleset: 'foundation-28-stars-brightness-relations-limits-v3',
+    version: 4,
+    ruleset: 'foundation-brightness-limits-annual-taisu-mutagens-v4',
   );
 
   static const meihua = AlgorithmDescriptor(

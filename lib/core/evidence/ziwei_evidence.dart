@@ -29,6 +29,7 @@ abstract final class ZiweiEvidenceBuilder {
     final firstDecade = result.decadeTransformations.isEmpty
         ? null
         : result.decadeTransformations.first;
+    final annual = result.annual;
     return DivinationEvidence(
       methodId: AlgorithmCatalog.ziwei.id,
       version: AlgorithmCatalog.ziwei.version,
@@ -64,6 +65,14 @@ abstract final class ZiweiEvidenceBuilder {
                 .map((e) => '${e.starName}化${e.mutagen}入${e.destination.name}')
                 .join('、'),
           ),
+        DivinationEvidenceItem(
+          id: 'annual-layer',
+          label: '流年层',
+          detail:
+              '${annual.lunarYear}农历年${annual.yearStem}${annual.yearBranch}，'
+              '虚岁${annual.nominalAge}，流年命宫${annual.lifePalace.name}；'
+              '${annual.transformations.map((e) => '${e.starName}化${e.mutagen}入${e.destination.name}').join('、')}',
+        ),
       ],
       supportingEvidence: [
         DivinationEvidenceItem(
@@ -92,7 +101,7 @@ abstract final class ZiweiEvidenceBuilder {
         DivinationEvidenceItem(
           id: 'pending-rules',
           label: '未接入规则',
-          detail: '庙旺表仅覆盖源表收录的 20 星；流年流月和流派格局尚未计算，AI 不得自行补全。',
+          detail: '庙旺表仅覆盖源表收录的 20 星；流月、流日和流派格局尚未计算，AI 不得自行补全。',
         ),
       ],
       summary:

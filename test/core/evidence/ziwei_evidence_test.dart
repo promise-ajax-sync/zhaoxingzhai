@@ -26,11 +26,11 @@ void main() {
     expect(evidence.methodId, 'ziwei');
     expect(
       evidence.calculationFacts.map((e) => e.label),
-      containsAll(['命身与五行局', '命宫星曜', '生年四化', '大限']),
+      containsAll(['命身与五行局', '命宫星曜', '生年四化', '大限', '流年层']),
     );
     expect(
       evidence.limitations.map((e) => e.detail).join(),
-      allOf(contains('庙旺'), contains('流年流月'), contains('AI 不得自行补全')),
+      allOf(contains('庙旺'), contains('流月、流日'), contains('AI 不得自行补全')),
     );
   });
 }
