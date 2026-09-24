@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:zhaoxingzhai/app/app_view.dart';
 import 'package:zhaoxingzhai/core/routing/divination_tool_router.dart';
+import 'package:zhaoxingzhai/core/models/case_profile.dart';
+import 'package:zhaoxingzhai/features/home/data/home_conversation_repository.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
 
 /// 首页（对话优先）。
@@ -15,6 +17,8 @@ class HomePage extends StatefulWidget {
     this.onOpenRoutedQuestion,
     this.fortuneHeadline,
     this.fortuneListenable,
+    this.currentCase,
+    this.conversationRepository,
   });
 
   final ValueChanged<AppView> onOpenFeature;
@@ -22,6 +26,8 @@ class HomePage extends StatefulWidget {
   onOpenRoutedQuestion;
   final String Function()? fortuneHeadline;
   final Listenable? fortuneListenable;
+  final CaseSnapshot? Function()? currentCase;
+  final HomeConversationRepository? conversationRepository;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -31,18 +37,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final TextEditingController _controller = TextEditingController();
   String _tool = '梅花易数';
   DivinationToolSelection? _selection;
+  final List<String> _submittedQuestions = [];
+  String? _conversationId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.conversationRepository?.addListener(_onConversationsChanged);
+    _restoreConversations();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.conversationRepository?.removeListener(_onConversationsChanged);
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onConversationsChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -60,10 +75,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final selection = DivinationToolRouter.select(question);
     setState(() {
       _selection = selection;
+      _submittedQuestions.insert(0, question);
       if (selection != null) {
         _tool = selection.tool.label;
       }
     });
+    final repository = widget.conversationRepository;
+    if (repository != null) {
+      repository
+          .append(
+            text: question,
+            toolId: selection?.tool.id,
+            conversationId: _conversationId,
+          )
+          .then((conversation) => _conversationId = conversation.id);
+    }
     if (selection == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -72,6 +98,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
       );
     }
+  }
+
+  Future<void> _restoreConversations() async {
+    final repository = widget.conversationRepository;
+    if (repository == null) return;
+    await repository.ensureLoaded();
+    if (!mounted || repository.conversations.isEmpty) return;
+    final conversation = repository.conversations.first;
+    setState(() {
+      _conversationId = conversation.id;
+      _submittedQuestions
+        ..clear()
+        ..addAll(conversation.messages.map((message) => message.text));
+    });
+  }
+
+  void _selectConversation(HomeConversation conversation) {
+    setState(() {
+      _conversationId = conversation.id;
+      _submittedQuestions
+        ..clear()
+        ..addAll(conversation.messages.map((message) => message.text));
+    });
+  }
+
+  Future<void> _deleteConversation(HomeConversation conversation) async {
+    await widget.conversationRepository?.delete(conversation.id);
+    if (!mounted || _conversationId != conversation.id) return;
+    setState(() {
+      _conversationId = null;
+      _submittedQuestions.clear();
+    });
   }
 
   @override
@@ -102,6 +160,31 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     SizedBox(height: wide ? AppTheme.space9 : AppTheme.space7),
                     _Hero(onOpenMeritBox: () {}),
                     SizedBox(height: wide ? AppTheme.space8 : AppTheme.space7),
+                    if (_submittedQuestions.isNotEmpty) ...[
+                      _ConversationContext(
+                        questions: _submittedQuestions,
+                        currentCase: widget.currentCase?.call(),
+                        conversations:
+                            widget.conversationRepository?.conversations ??
+                            const [],
+                        conflicts:
+                            widget.conversationRepository?.conflicts ??
+                            const [],
+                        selectedId: _conversationId,
+                        onSelect: _selectConversation,
+                        onDelete: _deleteConversation,
+                        onKeepLocal: (conversation) => widget
+                            .conversationRepository
+                            ?.resolveConflictKeepLocal(conversation),
+                        onUseCloud: (conversation) => widget
+                            .conversationRepository
+                            ?.resolveConflictUseCloud(conversation.id),
+                        onDismissConflict: (conversation) => widget
+                            .conversationRepository
+                            ?.discardConflict(conversation.id),
+                      ),
+                      const SizedBox(height: AppTheme.space4),
+                    ],
                     _Composer(
                       controller: _controller,
                       tool: _tool,
@@ -154,6 +237,110 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     DivinationTool.ziwei => AppView.ziwei,
     DivinationTool.dailyHexagram => AppView.dailyHexagram,
   };
+}
+
+class _ConversationContext extends StatelessWidget {
+  const _ConversationContext({
+    required this.questions,
+    this.currentCase,
+    required this.conversations,
+    required this.conflicts,
+    required this.selectedId,
+    required this.onSelect,
+    required this.onDelete,
+    required this.onKeepLocal,
+    required this.onUseCloud,
+    required this.onDismissConflict,
+  });
+
+  final List<String> questions;
+  final CaseSnapshot? currentCase;
+  final List<HomeConversation> conversations;
+  final List<HomeConversation> conflicts;
+  final String? selectedId;
+  final ValueChanged<HomeConversation> onSelect;
+  final ValueChanged<HomeConversation> onDelete;
+  final ValueChanged<HomeConversation> onKeepLocal;
+  final ValueChanged<HomeConversation> onUseCloud;
+  final ValueChanged<HomeConversation> onDismissConflict;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    key: const ValueKey('home-conversation-context'),
+    child: Padding(
+      padding: const EdgeInsets.all(AppTheme.space3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (conflicts.isNotEmpty) ...[
+            MaterialBanner(
+              content: Text('有 ${conflicts.length} 个会话与云端版本冲突，请选择处理方式。'),
+              leading: const Icon(Icons.warning_amber_outlined),
+              actions: [
+                TextButton(
+                  onPressed: () => onKeepLocal(conflicts.first),
+                  child: const Text('保留本地'),
+                ),
+                TextButton(
+                  onPressed: () => onUseCloud(conflicts.first),
+                  child: const Text('使用云端'),
+                ),
+                TextButton(
+                  onPressed: () => onDismissConflict(conflicts.first),
+                  child: const Text('稍后处理'),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.space2),
+          ],
+          Row(
+            children: [
+              const Icon(Icons.forum_outlined, size: 18),
+              const SizedBox(width: AppTheme.space2),
+              Text('本次会话', style: Theme.of(context).textTheme.titleMedium),
+              const Spacer(),
+              if (currentCase != null)
+                Chip(
+                  avatar: const Icon(Icons.person_outline, size: 14),
+                  label: Text(currentCase!.displayName),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.space2),
+          for (final question in questions.take(5))
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.space1),
+              child: Text('· $question'),
+            ),
+          const Text('问题只会先路由到确定性术式；生成 AI 解读前，必须先完成对应排盘并提供结构化证据。'),
+          if (conversations.length > 1) ...[
+            const SizedBox(height: AppTheme.space3),
+            const Divider(height: 1),
+            const SizedBox(height: AppTheme.space2),
+            Text('历史会话', style: Theme.of(context).textTheme.labelLarge),
+            for (final conversation in conversations.take(8))
+              ListTile(
+                dense: true,
+                selected: conversation.id == selectedId,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  conversation.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text('${conversation.messages.length} 条消息'),
+                onTap: () => onSelect(conversation),
+                trailing: IconButton(
+                  tooltip: '删除会话',
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  onPressed: () => onDelete(conversation),
+                ),
+              ),
+          ],
+        ],
+      ),
+    ),
+  );
 }
 
 class _NeverListenable implements Listenable {

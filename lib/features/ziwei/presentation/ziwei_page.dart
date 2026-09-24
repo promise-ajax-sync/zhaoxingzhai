@@ -182,6 +182,8 @@ class _ZiweiPageState extends State<ZiweiPage> {
               ),
               const SizedBox(height: AppTheme.space4),
               _layerSelector(),
+              const SizedBox(height: AppTheme.space2),
+              _layerDescription(result),
               const SizedBox(height: AppTheme.space3),
               _fixedPalaceChart(context, result),
               const SizedBox(height: AppTheme.space4),
@@ -264,63 +266,69 @@ class _ZiweiPageState extends State<ZiweiPage> {
     ].join('·');
     final overlay = _layerOverlay(result, palace);
     final highlighted = _isLayerHighlighted(result, palace);
-    return Card(
-      color: highlighted
-          ? Theme.of(context).colorScheme.primaryContainer
-          : null,
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.space2),
-        child: SizedBox(
-          height: 184,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${position.name} · ${position.ganzhi}',
-                      style: Theme.of(context).textTheme.titleMedium,
+    return Semantics(
+      key: ValueKey('ziwei-palace-${position.branch}'),
+      container: true,
+      label: _palaceSemanticLabel(result, palace),
+      selected: highlighted,
+      child: Card(
+        color: highlighted
+            ? Theme.of(context).colorScheme.primaryContainer
+            : null,
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space2),
+          child: SizedBox(
+            height: 184,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${position.name} · ${position.ganzhi}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    if (markers.isNotEmpty) Chip(label: Text(markers)),
+                  ],
+                ),
+                const SizedBox(height: AppTheme.space2),
+                Text(
+                  '三方 ${relations.trines.map((e) => e.name).join('·')} · '
+                  '对宫 ${relations.opposite.name}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                if (overlay != null) ...[
+                  const SizedBox(height: AppTheme.space1),
+                  Text(
+                    overlay,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (markers.isNotEmpty) Chip(label: Text(markers)),
                 ],
-              ),
-              const SizedBox(height: AppTheme.space2),
-              Text(
-                '三方 ${relations.trines.map((e) => e.name).join('·')} · '
-                '对宫 ${relations.opposite.name}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              if (overlay != null) ...[
-                const SizedBox(height: AppTheme.space1),
-                Text(
-                  overlay,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: AppTheme.space2),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Wrap(
+                      spacing: AppTheme.space2,
+                      runSpacing: AppTheme.space2,
+                      children: [
+                        if (palace.stars.isEmpty) const Text('暂无基础星曜'),
+                        for (final star in palace.stars)
+                          Text(
+                            star.mutagen == null
+                                ? '${star.name}${star.brightness == null ? '' : '（${star.brightness}）'}'
+                                : '${star.name}${star.brightness == null ? '' : '（${star.brightness}）'}化${star.mutagen}',
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ],
-              const SizedBox(height: AppTheme.space2),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Wrap(
-                    spacing: AppTheme.space2,
-                    runSpacing: AppTheme.space2,
-                    children: [
-                      if (palace.stars.isEmpty) const Text('暂无基础星曜'),
-                      for (final star in palace.stars)
-                        Text(
-                          star.mutagen == null
-                              ? '${star.name}${star.brightness == null ? '' : '（${star.brightness}）'}'
-                              : '${star.name}${star.brightness == null ? '' : '（${star.brightness}）'}化${star.mutagen}',
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -332,14 +340,40 @@ class _ZiweiPageState extends State<ZiweiPage> {
     spacing: AppTheme.space2,
     children: [
       for (final layer in _ZiweiDisplayLayer.values)
-        ChoiceChip(
-          key: ValueKey('ziwei-layer-${layer.name}'),
-          label: Text(layer.label),
+        Semantics(
+          button: true,
           selected: _displayLayer == layer,
-          onSelected: (_) => setState(() => _displayLayer = layer),
+          label: '显示${layer.label}层',
+          child: ChoiceChip(
+            key: ValueKey('ziwei-layer-${layer.name}'),
+            label: Text(layer.label),
+            selected: _displayLayer == layer,
+            onSelected: (_) => setState(() => _displayLayer = layer),
+          ),
         ),
     ],
   );
+
+  Widget _layerDescription(ZiweiChartResult result) {
+    final annual = result.annual;
+    final description = switch (_displayLayer) {
+      _ZiweiDisplayLayer.natal => '本命层：高亮命宫，星曜、亮度和生年四化均来自出生盘。',
+      _ZiweiDisplayLayer.decade =>
+        annual.activeDecade == null
+            ? '大限层：当前虚岁尚在童限，暂无大限宫位。'
+            : '大限层：高亮${annual.activeDecade!.palace.name}，显示当前限宫四化。',
+      _ZiweiDisplayLayer.annual =>
+        '流年层：高亮${annual.yearStem}${annual.yearBranch}年太岁命宫，标记流年十二宫与四化。',
+    };
+    return Semantics(
+      liveRegion: true,
+      child: Text(
+        description,
+        key: const ValueKey('ziwei-layer-description'),
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+    );
+  }
 
   Widget _fixedPalaceChart(BuildContext context, ZiweiChartResult result) {
     const gridIndexes = [9, 8, 7, 6, 10, -1, -2, 5, 11, -3, -4, 4, 0, 1, 2, 3];
@@ -350,25 +384,29 @@ class _ZiweiPageState extends State<ZiweiPage> {
       key: const ValueKey('ziwei-fixed-palace-chart'),
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.space2),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: 960,
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: gridIndexes.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                childAspectRatio: 1.2,
+        child: Semantics(
+          container: true,
+          label: '紫微十二宫固定方位盘，可横向滚动查看完整盘面',
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 960,
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: gridIndexes.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  childAspectRatio: 1.2,
+                ),
+                itemBuilder: (context, gridIndex) {
+                  final palaceIndex = gridIndexes[gridIndex];
+                  if (palaceIndex >= 0) {
+                    return _palaceCard(context, result, byIndex[palaceIndex]!);
+                  }
+                  return _chartCenterCell(context, result, palaceIndex);
+                },
               ),
-              itemBuilder: (context, gridIndex) {
-                final palaceIndex = gridIndexes[gridIndex];
-                if (palaceIndex >= 0) {
-                  return _palaceCard(context, result, byIndex[palaceIndex]!);
-                }
-                return _chartCenterCell(context, result, palaceIndex);
-              },
             ),
           ),
         ),
@@ -452,6 +490,30 @@ class _ZiweiPageState extends State<ZiweiPage> {
             ? '流年${annualPalace.name}'
             : '流年${annualPalace.name} · $transformations';
     }
+  }
+
+  String _palaceSemanticLabel(
+    ZiweiChartResult result,
+    ZiweiChartPalace palace,
+  ) {
+    final position = palace.position;
+    final stars = palace.stars.isEmpty
+        ? '无基础星曜'
+        : palace.stars
+              .map((star) {
+                final brightness = star.brightness == null
+                    ? ''
+                    : '${star.brightness}地';
+                final mutagen = star.mutagen == null ? '' : '化${star.mutagen}';
+                return '${star.name}$brightness$mutagen';
+              })
+              .join('，');
+    final overlay = _layerOverlay(result, palace);
+    return '${position.name}，${position.ganzhi}，'
+        '${position.isLife ? '本命命宫，' : ''}'
+        '${position.isBody ? '身宫，' : ''}'
+        '${overlay == null ? '' : '$overlay，'}'
+        '$stars';
   }
 
   String _decadeMutagens(ZiweiChartResult result, int order) {

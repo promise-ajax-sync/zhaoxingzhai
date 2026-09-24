@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:zhaoxingzhai/core/auth/auth_session.dart';
 import 'package:zhaoxingzhai/core/theme/app_theme.dart';
@@ -334,6 +335,45 @@ class _AccountCenterState extends State<_AccountCenter> {
     }
   }
 
+  Future<void> _exportData() async {
+    try {
+      final data = await widget.session.exportAccountData();
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('个人数据导出'),
+          content: SizedBox(
+            width: 640,
+            height: 420,
+            child: SingleChildScrollView(child: SelectableText(data)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('关闭'),
+            ),
+            FilledButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: data));
+                if (context.mounted) Navigator.pop(context);
+                if (mounted) setState(() => _message = '个人数据 JSON 已复制');
+              },
+              icon: const Icon(Icons.copy_all_outlined),
+              label: const Text('复制 JSON'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        setState(
+          () => _message = error.toString().replaceFirst('Bad state: ', ''),
+        );
+      }
+    }
+  }
+
   Future<void> _verifyEmail() async {
     try {
       final developmentToken = await widget.session.requestEmailVerification();
@@ -518,6 +558,11 @@ class _AccountCenterState extends State<_AccountCenter> {
                 onPressed: widget.session.busy ? null : _changePassword,
                 icon: const Icon(Icons.password_outlined),
                 label: const Text('修改密码'),
+              ),
+              OutlinedButton.icon(
+                onPressed: widget.session.busy ? null : _exportData,
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('导出个人数据'),
               ),
               OutlinedButton.icon(
                 onPressed: widget.session.busy ? null : _deleteAccount,

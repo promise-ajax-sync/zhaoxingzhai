@@ -295,6 +295,20 @@ class AuthSession extends ChangeNotifier {
     }
   }
 
+  Future<String> exportAccountData() async {
+    final token = await accessTokenForRequest();
+    if (token == null) throw StateError('请先登录');
+    final response = await _client.get(
+      _uri('/api/v1/auth/me/export'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw StateError(_errorMessage(response));
+    }
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    return const JsonEncoder.withIndent('  ').convert(decoded);
+  }
+
   Future<String?> requestEmailVerification() async {
     final token = await accessTokenForRequest();
     if (token == null) throw StateError('请先登录');

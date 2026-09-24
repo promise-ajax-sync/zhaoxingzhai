@@ -153,6 +153,49 @@ void main() {
     expect(session.isSignedIn, isFalse);
     expect(session.user, isNull);
   });
+
+  test('个人数据导出会携带授权并返回格式化 JSON', () async {
+    SharedPreferences.setMockInitialValues({});
+    http.Request? exportRequest;
+    final client = MockClient((request) async {
+      if (request.url.path == '/api/v1/auth/login') {
+        return http.Response(
+          jsonEncode({
+            'accessToken': 'access-token',
+            'refreshToken': 'refresh-token',
+            'accessExpiresAt': '2099-09-19T08:00:00Z',
+            'user': {
+              'id': 'd10553ec-3434-48b5-bf7f-c5419a0b9540',
+              'email': 'user@example.com',
+            },
+          }),
+          200,
+        );
+      }
+      exportRequest = request;
+      return http.Response(
+        jsonEncode({
+          'schemaVersion': 'zhaoxingzhai-account-export-v1',
+          'cases': [],
+          'records': [],
+        }),
+        200,
+      );
+    });
+    final session = AuthSession(
+      client: client,
+      config: const AiBackendConfig(baseUrl: 'http://127.0.0.1:8000'),
+      tokenStore: _MemoryTokenStore(),
+    );
+    await session.login(email: 'user@example.com', password: 'password123');
+
+    final exported = await session.exportAccountData();
+
+    expect(exportRequest?.url.path, '/api/v1/auth/me/export');
+    expect(exportRequest?.headers['authorization'], 'Bearer access-token');
+    expect(exported, contains('zhaoxingzhai-account-export-v1'));
+    expect(exported, contains('\n  "cases"'));
+  });
 }
 
 class _MemoryTokenStore implements SessionTokenStore {

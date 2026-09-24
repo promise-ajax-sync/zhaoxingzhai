@@ -24,6 +24,8 @@ import 'package:zhaoxingzhai/features/history/data/divination_history_repository
 import 'package:zhaoxingzhai/features/history/data/history_cloud_sync.dart';
 import 'package:zhaoxingzhai/features/history/presentation/history_page.dart';
 import 'package:zhaoxingzhai/features/home/presentation/home_page.dart';
+import 'package:zhaoxingzhai/features/home/data/home_conversation_repository.dart';
+import 'package:zhaoxingzhai/features/home/data/home_conversation_cloud_sync.dart';
 import 'package:zhaoxingzhai/features/fortune/domain/today_fortune.dart';
 import 'package:zhaoxingzhai/features/fortune/presentation/fortune_page.dart';
 import 'package:zhaoxingzhai/features/meihua/presentation/meihua_page.dart';
@@ -62,6 +64,7 @@ class _AppShellState extends State<AppShell> {
   late final CaseRepository _caseRepository;
   late final CaseSelectionController _caseSelection;
   late final AiServiceBundle _aiServiceBundle = AiServiceFactory.create();
+  late final HomeConversationRepository _homeConversations;
 
   /// 已接入真实实现的入口；未列入的一律走占位页。
   late final Map<AppView, Widget> _implemented = {
@@ -73,6 +76,8 @@ class _AppShellState extends State<AppShell> {
         caseSnapshot: _caseSelection.currentSnapshot,
       ).headline,
       fortuneListenable: _caseSelection,
+      currentCase: () => _caseSelection.currentSnapshot,
+      conversationRepository: _homeConversations,
     ),
     AppView.charts: MeihuaPage(
       routedDraft: _routedDraft,
@@ -249,6 +254,12 @@ class _AppShellState extends State<AppShell> {
     _historySyncClient = http.Client();
     _authSession = AuthSession(client: _historySyncClient)
       ..addListener(_onAuthChanged);
+    _homeConversations = HomeConversationRepository(
+      cloudSync: HomeConversationCloudSync(
+        client: _historySyncClient,
+        accessToken: _authSession.accessTokenForRequest,
+      ),
+    );
     _historyRepository = DivinationHistoryRepository(
       database: AppDatabase.shared,
       cloudSync: BackendHistoryCloudSync(
@@ -277,6 +288,7 @@ class _AppShellState extends State<AppShell> {
       ..dispose();
     _historySyncClient.close();
     _aiServiceBundle.dispose();
+    _homeConversations.dispose();
     _routedDraft.dispose();
     super.dispose();
   }
@@ -286,6 +298,7 @@ class _AppShellState extends State<AppShell> {
     if (nextUserId != null && nextUserId != _activeUserId) {
       unawaited(_historyRepository.refreshFromCloud());
       unawaited(_caseRepository.refreshFromCloud());
+      unawaited(_homeConversations.syncFromCloud());
     }
     _activeUserId = nextUserId;
     if (mounted) setState(() {});

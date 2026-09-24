@@ -55,9 +55,30 @@ void main() {
     expect(find.byKey(const ValueKey('ziwei-layer-natal')), findsOneWidget);
     expect(find.byKey(const ValueKey('ziwei-layer-decade')), findsOneWidget);
     expect(find.byKey(const ValueKey('ziwei-layer-annual')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('ziwei-layer-description')),
+      findsOneWidget,
+    );
+    for (final branch in const [
+      '寅',
+      '卯',
+      '辰',
+      '巳',
+      '午',
+      '未',
+      '申',
+      '酉',
+      '戌',
+      '亥',
+      '子',
+      '丑',
+    ]) {
+      expect(find.byKey(ValueKey('ziwei-palace-$branch')), findsOneWidget);
+    }
     await tester.tap(find.byKey(const ValueKey('ziwei-layer-annual')));
     await tester.pump();
     expect(find.textContaining('流年命宫'), findsWidgets);
+    expect(find.textContaining('太岁命宫'), findsWidgets);
     await tester.ensureVisible(find.text('保存紫微记录'));
     await tester.tap(find.text('保存紫微记录'));
     await tester.pump();

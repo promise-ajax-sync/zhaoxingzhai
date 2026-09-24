@@ -76,6 +76,10 @@ void main() {
     expect(find.text('推荐：梅花易数'), findsOneWidget);
     expect(find.textContaining('地点、方位或时间线索'), findsOneWidget);
     expect(find.text('进入梅花易数'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('home-conversation-context')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('首页路由问题可以自动带入梅花易数', (WidgetTester tester) async {
